@@ -12,11 +12,11 @@
 
 #include "rf_device.h"
 
-void tx_init(   TX_Device* this, 
-                void *set_signal, 
-                void *set_onetime_trigger_time, 
-                void *set_recurring_trigger_time, 
-                void *cancel_trigger, 
+void tx_init(   TX_Device* this,
+                void *set_signal,
+                void *set_onetime_trigger_time,
+                void *set_recurring_trigger_time,
+                void *cancel_trigger,
                 void* user_data)
 {
     memset(this, 0, sizeof(TX_Device));
