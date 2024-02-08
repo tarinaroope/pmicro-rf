@@ -29,5 +29,5 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 endif()
 
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)
 

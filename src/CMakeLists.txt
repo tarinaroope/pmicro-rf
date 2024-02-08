@@ -1,7 +1,9 @@
-    add_executable(pmicro-rf
-            rf_device.c
-	    rf_pico.c
-            )
+    
+    add_library (   pmicro-rf
+                    rf_device.c
+	                rf_pico.c
+                )
+    target_include_directories(pmicro-rf PUBLIC ../inc)
 
     if (${PICO_BOARD} STREQUAL "pico_w")
         target_compile_definitions(pmicro-rf PRIVATE USING_PICO_W)
@@ -20,7 +22,7 @@
     pico_enable_stdio_uart(pmicro-rf 1)
 
     # create map/bin/hex/uf2 file etc.
-    pico_add_extra_outputs(pmicro-rf)
+   # pico_add_extra_outputs(pmicro-rf)
 
     # add url via pico_set_program_url
  #   example_auto_set_url(pmicro-rf)

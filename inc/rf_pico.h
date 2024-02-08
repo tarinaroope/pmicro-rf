@@ -16,15 +16,26 @@
 
 #define GPIO_PIN 22
 
-
+/**
+ * @brief Structure representing a RF Pico transmitter.
+ * 
+ * This structure holds information about a RF Pico transmitter, including the GPIO pin, 
+ * the TX device, and the repeating timer.
+ */
 typedef struct 
 {
-    uint8_t gpio;
-    TX_Device tx_device;
-    repeating_timer_t timer;
+    uint8_t gpio;               /**< GPIO pin used for transmission. */
+    TX_Device tx_device;        /**< TX device used for transmission. */
+    repeating_timer_t timer;    /**< Repeating timer used for transmission. */
 
 } rf_pico_transmitter;
 
+/**
+ * @brief Structure representing a Pico RF receiver.
+ * 
+ * This structure contains the necessary information for a Pico RF receiver,
+ * including the GPIO pin, the RX device, and the repeating timer.
+ */
 typedef struct 
 {
     uint8_t gpio;
