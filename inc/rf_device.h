@@ -11,7 +11,7 @@
 #define MAX_PAYLOAD_LENGTH          64
 #define PAYLOAD_LENGTH              7
 
-#define START_SYMBOL                0xb38 //0xA39   
+#define START_SYMBOL                0xA39   
 #define START_SYMBOL_LENGTH         12
 #define START_SYMBOL_MASK           0xFFF
 
