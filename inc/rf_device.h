@@ -6,7 +6,7 @@
 #ifndef RFDEVICE_H
 #define RFDEVICE_H
 
-#include "pico/stdlib.h"
+#include <stdint.h>
 
 #define MAX_PAYLOAD_LENGTH          64
 #define PAYLOAD_LENGTH              7
@@ -93,7 +93,7 @@ typedef struct
     uint16_t    start_buffer_mask; /**< Mask for detecting the start pattern. */
     uint8_t     length_buffer_mask; /**< Mask for detecting the length pattern. */
 
-    void (*state_function)(void* /*this*/); /**< Function pointer to the state processing function. */
+    void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
     void (*result_callback) (RF_Message /*message*/); /**< Function pointer to the result callback function. */
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
     void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
@@ -112,15 +112,15 @@ typedef struct
 
     uint8_t     step_index; /**< Index of the current step in the transmission process. */
 
-    void (*state_function)(void* /*this*/); /**< Function pointer to the state processing function. */
-    void (*set_signal)(bool /*is_high*/, void* /*user_data*/); /**< Function pointer to set the signal. */
+    void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
+    void (*set_signal)(uint8_t /*is_high*/, void* /*user_data*/); /**< Function pointer to set the signal. */
     void (*set_onetime_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the one-time trigger time. */
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
     void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
     void* user_data; /**< User-defined data. */
 } TX_Device;
 
-void tx_init(   TX_Device* this, 
+void tx_init(   TX_Device* self, 
                 void* set_signal, 
                 void* set_onetime_trigger_time, 
                 void *set_recurring_trigger_time, 
@@ -132,135 +132,135 @@ void tx_init(   TX_Device* this,
  *
  * This function is called when the transmission of data is completed.
  *
- * @param this Pointer to the TX_Device object.
+ * @param self Pointer to the TX_Device object.
  */
-void tx_callback(TX_Device* this);
+void tx_callback(TX_Device* self);
 
 /**
  * @brief Sends a bit using the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  * @param buffer Buffer containing the bit to be sent.
  * @param bit_index Index of the bit to be sent.
  */
-void tx_send_bit(TX_Device* this, uint64_t buffer, uint8_t bit_index);
+void tx_send_bit(TX_Device* self, uint64_t buffer, uint8_t bit_index);
 
 /**
  * @brief Sets the state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  * @param state New state to be set.
  */
-void tx_set_state(TX_Device* this, TX_State state);
+void tx_set_state(TX_Device* self, TX_State state);
 
 /**
  * @brief State processing function for the wakeup state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_wakeup(TX_Device* this);
+void tx_state_process_wakeup(TX_Device* self);
 
 /**
  * @brief State processing function for the sync state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_sync(TX_Device* this);
+void tx_state_process_sync(TX_Device* self);
 
 /**
  * @brief State processing function for the start state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_start(TX_Device* this);
+void tx_state_process_start(TX_Device* self);
 
 /**
  * @brief State processing function for the send start state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_send_start(TX_Device* this);
+void tx_state_process_send_start(TX_Device* self);
 
 /**
  * @brief State processing function for the send length state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_send_length(TX_Device* this);
+void tx_state_process_send_length(TX_Device* self);
 
 /**
  * @brief State processing function for the send payload state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_send_payload(TX_Device* this);
+void tx_state_process_send_payload(TX_Device* self);
 
 /**
  * @brief State processing function for the send CRC state of the transmitter device.
- * @param this Pointer to the TX_Device structure.
+ * @param self Pointer to the TX_Device structure.
  */
-void tx_state_process_send_crc(TX_Device* this);
+void tx_state_process_send_crc(TX_Device* self);
 
-void rx_init(   RX_Device* this,
+void rx_init(   RX_Device* self,
                 void* result_callback,
                 void* set_recurring_trigger_time, 
                 void* cancel_trigger,
                 void* user_data);
 /**
  * @brief Callback function for the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  * @param signal_status Status of the received signal.
  */
-void rx_callback(RX_Device* this, uint8_t signal_status);
+void rx_callback(RX_Device* self, uint8_t signal_status);
 
 /**
  * @brief Performs sampling for the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  * @param signal_status Status of the received signal.
  * @return true if sampling is complete and bit has been received, false otherwise.
  */
-int rx_do_sampling(RX_Device* this);
+int rx_do_sampling(RX_Device* self);
 
 /**
  * @brief Sets the state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  * @param state New state to be set.
  */
-void rx_set_state(RX_Device* this, RX_State state);
+void rx_set_state(RX_Device* self, RX_State state);
 
 /**
  * @brief State processing function for the sync state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_state_process_sync(RX_Device* this);
+void rx_state_process_sync(RX_Device* self);
 
 /**
  * @brief State processing function for the wait start state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_state_process_wait_start(RX_Device* this);
+void rx_state_process_wait_start(RX_Device* self);
 
 /**
  * @brief State processing function for the read length state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_state_process_read_length(RX_Device* this);
+void rx_state_process_read_length(RX_Device* self);
 
 /**
  * @brief State processing function for the read payload state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_state_process_read_payload(RX_Device* this);
+void rx_state_process_read_payload(RX_Device* self);
 
 /**
  * @brief State processing function for the read CRC state of the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  * @param signal_status Status of the received signal.
  */
-void rx_state_process_read_crc(RX_Device* this);
+void rx_state_process_read_crc(RX_Device* self);
 
 /**
  * @brief Starts the receiving process for the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_start_receiving(RX_Device* this);
+void rx_start_receiving(RX_Device* self);
 
 /**
  * @brief Stops the receiving process for the receiver device.
- * @param this Pointer to the RX_Device structure.
+ * @param self Pointer to the RX_Device structure.
  */
-void rx_stop_receiving(RX_Device* this);
+void rx_stop_receiving(RX_Device* self);
 
 #endif // RFDEVICE_H

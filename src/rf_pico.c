@@ -1,21 +1,20 @@
-
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "rf_pico.h"
 
 
-void pico_tx_set_signal(bool is_high, void* user_data)
+void pico_tx_set_signal(uint8_t is_high, void* user_data)
 {
     rf_pico_transmitter* transmitter = (rf_pico_transmitter*) user_data;
-    gpio_put(transmitter->gpio, is_high);
+    gpio_put(transmitter->gpio, (uint8_t) is_high);
 }
 
 void pico_data_read_callback(void *user_data)
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
     bool gpio_value = gpio_get(receiver->gpio);
-    rx_callback(&(receiver->rx_device), gpio_value);
+    rx_callback(&(receiver->rx_device), (uint8_t) gpio_value);
 }
 
 int64_t pico_tx_alarm_callback(alarm_id_t id, void *user_data) 
@@ -45,31 +44,31 @@ void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message)
     tx_callback(&(transmitter->tx_device));
 }
 
-void pico_rx_start_receiving(rf_pico_receiver* this)
+void pico_rx_start_receiving(rf_pico_receiver* self)
 {
-    rx_start_receiving(&(this->rx_device));
+    rx_start_receiving(&(self->rx_device));
 }
 
-void pico_rx_stop_receiving(rf_pico_receiver* this)
+void pico_rx_stop_receiving(rf_pico_receiver* self)
 {
-    rx_stop_receiving(&(this->rx_device));
+    rx_stop_receiving(&(self->rx_device));
 }
 
-void pico_init_receiver(rf_pico_receiver* this, uint8_t gpio, void* result_callback)
+void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callback)
 {
-    this->gpio = gpio;
-    gpio_init(this->gpio);
-    gpio_set_dir(this->gpio, GPIO_IN);
+    self->gpio = gpio;
+    gpio_init(self->gpio);
+    gpio_set_dir(self->gpio, GPIO_IN);
 
-    rx_init(&(this->rx_device),result_callback, pico_rx_set_recurring_trigger_time, 
-            pico_rx_cancel_trigger, this);
+    rx_init(&(self->rx_device),result_callback, pico_rx_set_recurring_trigger_time, 
+            pico_rx_cancel_trigger, self);
 }
 
-void pico_init_transmitter(rf_pico_transmitter* this, uint8_t gpio)
+void pico_init_transmitter(rf_pico_transmitter* self, uint8_t gpio)
 {
-    this->gpio = gpio;
-    gpio_init(this->gpio);
-    gpio_set_dir(this->gpio, GPIO_OUT);
+    self->gpio = gpio;
+    gpio_init(self->gpio);
+    gpio_set_dir(self->gpio, GPIO_OUT);
 
 #ifdef USING_PICO_W
     cyw43_arch_init();
@@ -78,8 +77,8 @@ void pico_init_transmitter(rf_pico_transmitter* this, uint8_t gpio)
     gpio_set_dir(LED_PIN, GPIO_OUT);
 #endif
 
-    tx_init(&(this->tx_device), pico_tx_set_signal, pico_tx_set_onetime_trigger_time, 
-            pico_tx_set_recurring_trigger_time, pico_tx_cancel_trigger, this);
+    tx_init(&(self->tx_device), pico_tx_set_signal, pico_tx_set_onetime_trigger_time, 
+            pico_tx_set_recurring_trigger_time, pico_tx_cancel_trigger, self);
 }
 
 void pico_tx_set_onetime_trigger_time(uint64_t time_to_trigger, void* user_data)

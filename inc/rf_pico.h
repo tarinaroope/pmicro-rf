@@ -51,7 +51,7 @@ typedef struct
  * @param is_high The signal value to set. True for high, false for low.
  * @param user_data A pointer to user-defined data.
  */
-void pico_tx_set_signal(bool is_high, void* user_data);
+void pico_tx_set_signal(uint_8 is_high, void* user_data);
 /**
  * @brief Callback function for reading data in the Pico device.
  *
@@ -109,14 +109,14 @@ void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message);
  * @param user_data A pointer to user-defined data.
  * @return The return value is not used.
  */
-void pico_rx_start_receiving(rf_pico_receiver* this);
+void pico_rx_start_receiving(rf_pico_receiver* self);
 
 /**
  * @brief Stops the Pico RX from receiving.
  *
- * @param this The RF Pico receiver.
+ * @param self The RF Pico receiver.
  */
-void pico_rx_stop_receiving(rf_pico_receiver* this);
+void pico_rx_stop_receiving(rf_pico_receiver* self);
 
 /**
  * @brief Callback function for the Pico RX alarm.
@@ -127,20 +127,20 @@ void pico_rx_stop_receiving(rf_pico_receiver* this);
  * @param user_data A pointer to user-defined data.
  * @return The return value is not used.
  */
-void pico_init_receiver(rf_pico_receiver* this, uint8_t gpio, void* result_callback);
+void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callback);
 
 /**
  * @brief Initializes the RF Pico transmitter.
  *
- * @param this The RF Pico transmitter.
+ * @param self The RF Pico transmitter.
  * @param gpio The GPIO pin to use for the transmitter.
  */
-void pico_init_transmitter(rf_pico_transmitter* this, uint8_t gpio);
+void pico_init_transmitter(rf_pico_transmitter* self, uint8_t gpio);
 
 /**
  * @brief Initializes the RF Pico receiver.
  *
- * @param this The RF Pico receiver.
+ * @param self The RF Pico receiver.
  * @param gpio The GPIO pin to use for the receiver.
  */
 void pico_tx_set_onetime_trigger_time(uint64_t time_to_trigger, void* user_data);
