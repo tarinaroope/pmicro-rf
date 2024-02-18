@@ -9,9 +9,10 @@ void report_result(RF_Message message)
 
 int main (void)
 {
+
     stdio_init_all();
     sleep_ms(2000);
-    
+/*    
     rf_pico_transmitter trans;
     RF_Message message;
     message.message = 12345;
@@ -29,8 +30,9 @@ int main (void)
     {
         sleep_ms(1000);
     }
+*/
     
-   /*
+   
    printf("Receiver\n");
        sleep_ms(2000);
 
@@ -42,5 +44,5 @@ int main (void)
     {
         sleep_ms(1000);
     }    
-    */
+    
 }

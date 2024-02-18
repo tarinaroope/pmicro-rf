@@ -15,11 +15,11 @@
 #define START_SYMBOL_LENGTH         12
 #define START_SYMBOL_MASK           0xFFF
 
-#define SYNC_SYMBOL                 0xAAAAAAAAA
+#define SYNC_SYMBOL                 0xAAAAAAAAAULL
 #define SYNC_SYMBOL_LENGTH          36
 
-#define SYNC_PATTERN                0xFFC00FFC00
-#define SYNC_PATTERN_MASK           0xFFFFFFFFFF
+#define SYNC_PATTERN                0xFFC00FFC00ULL
+#define SYNC_PATTERN_MASK           0xFFFFFFFFFFULL
 
 #define SAMPLING_FREQUENCY          100     // us
 #define SAMPLING_COUNT              10      // number of samples per bit. Speed = sampling_frequency / sampling_count

@@ -35,7 +35,7 @@ void tx_callback(TX_Device* self)
 
 void tx_send_bit(TX_Device* self, uint64_t buffer, uint8_t bit_index)
 {
-    uint64_t mask = 1 << bit_index;
+    uint64_t mask = 1ULL << bit_index;
     if (buffer & mask)
     {
        self->set_signal(1, self->user_data);
@@ -294,7 +294,7 @@ void rx_state_process_sync(RX_Device* self)
     else
     {
         // Continue
-        self->buffer <<= 1;
+        self->buffer <<= 1ULL;
     }
 }
 
@@ -315,7 +315,7 @@ void rx_state_process_wait_start(RX_Device* self)
     else
     {
         // Continue
-        self->buffer <<= 1;
+        self->buffer <<= 1ULL;
         self->buffer_current_bit_index += 1;
     }
 }
@@ -340,7 +340,7 @@ void rx_state_process_read_length(RX_Device* self)
     else
     {
         // Continue
-        self->buffer <<= 1;
+        self->buffer <<= 1ULL;
         self->buffer_current_bit_index += 1;
     }
 } 
@@ -357,7 +357,7 @@ void rx_state_process_read_payload(RX_Device* self)
     else
     {
         // Continue
-        self->buffer <<= 1;
+        self->buffer <<= 1ULL;
         self->buffer_current_bit_index += 1;
     }
 }
@@ -375,7 +375,7 @@ void rx_state_process_read_crc(RX_Device* self)
     else
     {
         // Continue
-        self->buffer <<= 1;
+        self->buffer <<= 1ULL;
         self->buffer_current_bit_index += 1;
     }
 }
