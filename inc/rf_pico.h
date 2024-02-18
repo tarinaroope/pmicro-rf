@@ -51,7 +51,7 @@ typedef struct
  * @param is_high The signal value to set. True for high, false for low.
  * @param user_data A pointer to user-defined data.
  */
-void pico_tx_set_signal(uint_8 is_high, void* user_data);
+void pico_tx_set_signal(uint8_t is_high, void* user_data);
 /**
  * @brief Callback function for reading data in the Pico device.
  *
