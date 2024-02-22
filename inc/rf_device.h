@@ -7,6 +7,7 @@
 #define RFDEVICE_H
 
 #include <stdint.h>
+#include "rf_synchronizer.h"
 
 #define MAX_PAYLOAD_LENGTH          64
 #define PAYLOAD_LENGTH              7
@@ -21,10 +22,15 @@
 #define SYNC_PATTERN                0xFFC00FFC00ULL
 #define SYNC_PATTERN_MASK           0xFFFFFFFFFFULL
 
-#define SAMPLING_FREQUENCY          100     // us
+#define STATIC_SAMPLING_FREQUENCY   100     // us
 #define SAMPLING_COUNT              10      // number of samples per bit. Speed = sampling_frequency / sampling_count
 
 #define SAMPLING_TOLERANCE          1       // number of wrong samples that can be tolerated
+
+#define SYNC_MODE_STATIC            0
+#define SYNC_MODE_DYNAMIC           1
+
+
 /**
  * @brief Structure representing a received bit in a radio frequency device.
  */
@@ -55,7 +61,7 @@ typedef struct
  */
 typedef enum
 {
-    RX_SYNC = 0,            /**< Synchronization state */
+    RX_SYNC = 0,            /**< Syncronization state */
     RX_WAIT_START,          /**< Waiting for start sequence state */
     RX_READ_LENGTH,         /**< Reading payload length state */
     RX_READ_PAYLOAD,        /**< Reading payload state */
@@ -81,7 +87,7 @@ typedef enum
  */
 typedef struct
 {
-    RX_State    state; /**< Current state of the receiver device. */
+    RX_State       state; /**< Current state of the receiver device. */
     RX_BIT      rx_bit; /**< Current bit being received. */
     RF_Message  message; /**< Message received. */
 
@@ -92,6 +98,8 @@ typedef struct
     uint64_t    sync_buffer_mask; /**< Mask for detecting the synchronization pattern. */
     uint16_t    start_buffer_mask; /**< Mask for detecting the start pattern. */
     uint8_t     length_buffer_mask; /**< Mask for detecting the length pattern. */
+
+    RX_Synchronizer* synchronizer;
 
     void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
     void (*result_callback) (RF_Message /*message*/); /**< Function pointer to the result callback function. */
@@ -121,11 +129,11 @@ typedef struct
 } TX_Device;
 
 void tx_init(   TX_Device* self, 
-                void* set_signal, 
-                void* set_onetime_trigger_time, 
-                void *set_recurring_trigger_time, 
-                void *cancel_trigger, 
-                void* user_data);
+                void (*set_signal), 
+                void (*set_onetime_trigger_time), 
+                void (*set_recurring_trigger_time), 
+                void (*cancel_trigger), 
+                void (*user_data) );
 
 /**
  * @brief Callback function for transmitting data.
@@ -198,6 +206,9 @@ void rx_init(   RX_Device* self,
                 void* set_recurring_trigger_time, 
                 void* cancel_trigger,
                 void* user_data);
+
+void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback));
+
 /**
  * @brief Callback function for the receiver device.
  * @param self Pointer to the RX_Device structure.

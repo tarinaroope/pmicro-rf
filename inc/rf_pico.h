@@ -45,6 +45,8 @@ typedef struct
     repeating_timer_t timer;
 } rf_pico_receiver;
 
+uint64_t pico_get_timestamp_us_callback();
+
 /**
  * Sets the signal for pico_tx.
  *

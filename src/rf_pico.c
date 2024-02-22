@@ -54,6 +54,11 @@ void pico_rx_stop_receiving(rf_pico_receiver* self)
     rx_stop_receiving(&(self->rx_device));
 }
 
+uint64_t pico_get_timestamp_us_callback()
+{
+    return to_us_since_boot(get_absolute_time());
+}
+
 void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callback)
 {
     self->gpio = gpio;
