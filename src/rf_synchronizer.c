@@ -11,10 +11,13 @@ void rx_synchronizer_init(RX_Synchronizer* self, uint64_t (*get_timestamp)())
 
 void rx_synchronizer_process(RX_Synchronizer* self, uint8_t signal_state)
 {
-    self->state_function(self, signal_state);
+    if (self->state_function != NULL)
+    {    
+        self->state_function(self, signal_state);
+    }
 }
 
-void rx_syncronizer_set_state(RX_Synchronizer* self, RX_Synchronizer_State state)
+void rx_synchronizer_set_state(RX_Synchronizer* self, RX_Synchronizer_State state)
 {
     self->state = state;
     switch (state)
@@ -32,7 +35,7 @@ void rx_syncronizer_set_state(RX_Synchronizer* self, RX_Synchronizer_State state
             self->state_function = rx_synchronizer_state_sync;
             break;
         case RX_SYNCHRONIZER_STATE_DONE:
-            self->state_function = rx_synchronizer_state_done;
+            self->state_function = NULL;
             break;
     }
 
@@ -80,13 +83,13 @@ void rx_synchronizer_state_start_sync(RX_Synchronizer* self, uint8_t signal_stat
 void rx_synchronizer_state_sync(RX_Synchronizer* self, uint8_t signal_state)
 {
     uint8_t res = 0;
-    if (processing_high)
+    if (self->processing_high)
     {
         res = rx_sampler_sync_collect_high(self, signal_state, self->sync_sample_count);
     }
     else
     {
-        res = rx_sampler_sync_collect_high(self, signal_state, self->sync_sample_count;);
+        res = rx_sampler_sync_collect_high(self, signal_state, self->sync_sample_count);
     }
     if (res > 0)
     {
@@ -100,7 +103,7 @@ void rx_synchronizer_state_sync(RX_Synchronizer* self, uint8_t signal_state)
         else
         {
             // Ensure we store the last taken sample also before flipping the processing state
-            if (processing_high)
+            if (self->processing_high)
             {
                 self->high_sample_count = 1;
                 self->low_sample_count = 0;
@@ -112,7 +115,7 @@ void rx_synchronizer_state_sync(RX_Synchronizer* self, uint8_t signal_state)
                 self->high_sample_count = 0;
             }
             // Flip
-            processing_high ^= 1;
+            self->processing_high ^= 1;
         }
     }
     else if (res < 0)
@@ -122,7 +125,7 @@ void rx_synchronizer_state_sync(RX_Synchronizer* self, uint8_t signal_state)
     }
 }
 
-void rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
+uint8_t rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
 {
     if (signal_state)
     {
@@ -130,7 +133,7 @@ void rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, u
     }
     else
     {
-        if (!expected_sample_count)
+        if (!expected_count)
         {
             // No expected sample count, check against defined low and high limit
             if (self->high_sample_count >= SKEW_LOW_LIMIT && 
@@ -162,7 +165,7 @@ void rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, u
     
     // Check if we have too many high samples
 
-    if (!expected_sample_count && self->high_sample_count > SKEW_HIGH_LIMIT)
+    if (!expected_count && self->high_sample_count > SKEW_HIGH_LIMIT)
     {
         return (-1) * self->high_sample_count;
     }
@@ -174,7 +177,7 @@ void rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, u
     return 0;
 }
 
-void rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
+uint8_t rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
 {
     if (!signal_state)
     {
@@ -182,7 +185,7 @@ void rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, ui
     }
     else
     {
-        if (!expected_sample_count)
+        if (!expected_count)
         {
             // No expected sample count, check against defined low and high limit
             if (self->low_sample_count >= SKEW_LOW_LIMIT && 
@@ -214,7 +217,7 @@ void rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, ui
     
     // Check if we have too many low samples
 
-    if (!expected_sample_count && self->low_sample_count > SKEW_HIGH_LIMIT)
+    if (!expected_count && self->low_sample_count > SKEW_HIGH_LIMIT)
     {
         return (-1) * self->low_sample_count;
     }

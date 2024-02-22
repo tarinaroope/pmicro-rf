@@ -1,6 +1,9 @@
 #ifndef RFSYNCHRONIZER_H
 #define RFSYNCHRONIZER_H
 
+#include <stdint.h>
+
+
 #define SYNC_SAMPLING_RATE           60        // us
 #define SKEW_LOW_LIMIT               10        // Allow fastest transmission rate 600us / bit with 60us sampling rate
 #define SKEW_HIGH_LIMIT              25        // Allow lowest transmission rate 1500us / bit with 60us sampling rate
@@ -16,7 +19,8 @@ typedef enum
     RX_SYNCHRONIZER_STATE_DONE
 } RX_Synchronizer_State;
 
-typedef struct
+typedef struct RX_Synchronizer RX_Synchronizer;
+struct RX_Synchronizer
 {
     uint8_t low_sample_count;   /**< Number of samples with a value of 0. */
     uint8_t high_sample_count;  /**< Number of samples with a value of 1. */
@@ -28,16 +32,17 @@ typedef struct
     uint8_t detected_transmission_rate;
     RX_Synchronizer_State state;
 
-    void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
-    uint64_t (*get_timestamp());
-} RX_Synchronizer;
+    void (*state_function)(RX_Synchronizer* /*self*/, uint8_t /*signal_state*/); /**< Function pointer to the state processing function. */
+    uint64_t (*get_timestamp)();
+};
 
-void rx_synchronizer_init(RX_Synchronizer* self, uint64_t (*get_timestamp));
+void rx_synchronizer_init(RX_Synchronizer* self, uint64_t (*get_timestamp)());
 void rx_synchronizer_process(RX_Synchronizer* self, uint8_t signal_state);
+void rx_synchronizer_set_state(RX_Synchronizer* self, RX_Synchronizer_State state);
 void rx_synchronizer_state_wait_sync(RX_Synchronizer* self, uint8_t signal_state);
 void rx_synchronizer_state_start_sync(RX_Synchronizer* self, uint8_t signal_state);
 void rx_synchronizer_state_sync(RX_Synchronizer* self, uint8_t signal_state);
-void rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
-void rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
+uint8_t rx_sampler_sync_collect_high(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
+uint8_t rx_sampler_sync_collect_low(RX_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
 
 #endif

@@ -171,7 +171,7 @@ void rx_init(   RX_Device* self,
     rx_set_state(self, RX_SYNC);
 }
 
-void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback))
+void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback)())
 {
     if (mode == SYNC_MODE_DYNAMIC && timestamp_callback != NULL)
     {
@@ -197,7 +197,7 @@ void rx_set_state(RX_Device* self, RX_State state)
             
             if (self->synchronizer)
             {
-                rx_syncronizer_set_state(self->synchronizer, RX_SYNCHRONIZER_STATE_WAIT_SYNC);
+                rx_synchronizer_set_state(self->synchronizer, RX_SYNCHRONIZER_STATE_WAIT_SYNC);
                 
                 // Set back the default sampling rate
                 self->cancel_trigger(self->user_data);
@@ -317,7 +317,9 @@ void rx_state_process_sync(RX_Device* self)
 
             // Adjust the recurring trigger time based on the detected transmission rate
             self->cancel_trigger(self->user_data);
-            self->set_recurring_trigger_time(self->synchronizer->detected_transmission_rate / SAMPLING_COUNT); 
+            self->set_recurring_trigger_time(
+                                            self->synchronizer->detected_transmission_rate / SAMPLING_COUNT,
+                                            self->user_data); 
         }
     }
     else

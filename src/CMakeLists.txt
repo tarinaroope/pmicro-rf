@@ -1,7 +1,8 @@
     
     add_library (   pmicro-rf
                     rf_device.c
-	                rf_pico.c
+	            rf_pico.c
+		    rf_synchronizer.c
                 )
     target_include_directories(pmicro-rf PUBLIC ../inc)
 

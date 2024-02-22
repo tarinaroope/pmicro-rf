@@ -85,9 +85,10 @@ typedef enum
  * @struct RX_Device
  * @brief Structure representing the receiver (RX) device.
  */
-typedef struct
+typedef struct RX_Device RX_Device;
+struct RX_Device
 {
-    RX_State       state; /**< Current state of the receiver device. */
+    RX_State    state; /**< Current state of the receiver device. */
     RX_BIT      rx_bit; /**< Current bit being received. */
     RF_Message  message; /**< Message received. */
 
@@ -101,32 +102,33 @@ typedef struct
 
     RX_Synchronizer* synchronizer;
 
-    void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
+    void (*state_function)(RX_Device* /*self*/); /**< Function pointer to the state processing function. */
     void (*result_callback) (RF_Message /*message*/); /**< Function pointer to the result callback function. */
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
     void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
     void* user_data; /**< User-defined data. */
 
-} RX_Device;
+};
 
 /**
  * @struct TX_Device
  * @brief Structure representing the transmitter (TX) device.
  */
-typedef struct 
+typedef struct TX_Device TX_Device;
+struct TX_Device
 {
     TX_State    state; /**< Current state of the transmitter device. */
     RF_Message  message; /**< Message to be transmitted. */
 
     uint8_t     step_index; /**< Index of the current step in the transmission process. */
 
-    void (*state_function)(void* /*self*/); /**< Function pointer to the state processing function. */
+    void (*state_function)(TX_Device* /*self*/); /**< Function pointer to the state processing function. */
     void (*set_signal)(uint8_t /*is_high*/, void* /*user_data*/); /**< Function pointer to set the signal. */
     void (*set_onetime_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the one-time trigger time. */
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
     void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
     void* user_data; /**< User-defined data. */
-} TX_Device;
+};
 
 void tx_init(   TX_Device* self, 
                 void (*set_signal), 
@@ -207,7 +209,7 @@ void rx_init(   RX_Device* self,
                 void* cancel_trigger,
                 void* user_data);
 
-void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback));
+void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback)());
 
 /**
  * @brief Callback function for the receiver device.
