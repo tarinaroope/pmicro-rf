@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "debug_logging.h"
 
 #include "rf_device.h"
@@ -187,7 +188,7 @@ void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callba
 
 void rx_set_state(RX_Device* self, RX_State state)
 {
-    TRACE("Setting state to %d", state);
+   // TRACE("Setting state to %d", state);
 
     self->state = state;
     switch (state)
@@ -205,10 +206,14 @@ void rx_set_state(RX_Device* self, RX_State state)
             }
             break;
         case RX_WAIT_START:
+           //     TRACE("Setting state to %d", state);
+
             self->state_function = rx_state_process_wait_start;
 
             break;
         case RX_READ_LENGTH:
+
+       // TRACE("Setting state to %d", state);
             self->state_function = rx_state_process_read_length;
             
             break;
@@ -309,17 +314,18 @@ void rx_state_process_sync(RX_Device* self)
         rx_synchronizer_process(self->synchronizer, self->signal_state);
         if (self->synchronizer->state == RX_SYNCHRONIZER_STATE_DONE)
         {
-            rx_set_state(self, RX_WAIT_START);
-
-            // Assuming we always start sync time detection from 1 bit in sync pattern and have the 
-            // sync bit pattern detection count even, we can assume that we have already collected one high sample
-            self->rx_bit.high_sample_count = 1;
+            float sampling_rate = (float) self->synchronizer->detected_transmission_rate / SAMPLING_COUNT;
 
             // Adjust the recurring trigger time based on the detected transmission rate
             self->cancel_trigger(self->user_data);
-            self->set_recurring_trigger_time(
-                                            self->synchronizer->detected_transmission_rate / SAMPLING_COUNT,
-                                            self->user_data); 
+            TRACE("sync done %u", self->synchronizer->detected_transmission_rate);
+            self->set_recurring_trigger_time(round(sampling_rate), self->user_data);
+            rx_set_state(self, RX_WAIT_START);
+
+            // Assuming we always start sync time detection from 0 bit in sync pattern and have the 
+            // sync bit pattern detection count even, we can assume that we have already collected one low sample
+            self->rx_bit.low_sample_count = 1;
+            self->rx_bit.sync_index = 1;
         }
     }
     else

@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "rf_pico.h"
+#include "debug_logging.h"
 
 
 void pico_tx_set_signal(uint8_t is_high, void* user_data)
@@ -67,6 +68,7 @@ void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callb
 
     rx_init(&(self->rx_device),result_callback, pico_rx_set_recurring_trigger_time, 
             pico_rx_cancel_trigger, self);
+    rx_set_sync_mode(&(self->rx_device), SYNC_MODE_DYNAMIC, pico_get_timestamp_us_callback);
 }
 
 void pico_init_transmitter(rf_pico_transmitter* self, uint8_t gpio)
@@ -109,6 +111,8 @@ void pico_rx_set_recurring_trigger_time(uint64_t time_to_trigger, void* user_dat
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
     repeating_timer_t* timer = (repeating_timer_t*) &(receiver->timer);
+   // TRACE("timer:%lld %ld", timer->delay_us,timer->alarm_id );
+
     add_repeating_timer_us(time_to_trigger * -1, pico_rx_repeating_timer_callback, user_data, timer);
 }
 
@@ -116,6 +120,8 @@ void pico_rx_cancel_trigger(void* user_data)
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
     repeating_timer_t* timer = (repeating_timer_t*) &(receiver->timer);
+   // TRACE("timer:%lld %ld", timer->delay_us,timer->alarm_id );
+
     cancel_repeating_timer(timer);
 } 
 
