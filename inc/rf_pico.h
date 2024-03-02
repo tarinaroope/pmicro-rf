@@ -24,7 +24,6 @@
  */
 typedef struct 
 {
-    uint8_t gpio;               /**< GPIO pin used for transmission. */
     TX_Device tx_device;        /**< TX device used for transmission. */
     repeating_timer_t timer;    /**< Repeating timer used for transmission. */
 
@@ -38,14 +37,12 @@ typedef struct
  */
 typedef struct 
 {
-    uint8_t gpio;
-
     RX_Device rx_device;
-
     repeating_timer_t timer;
 } rf_pico_receiver;
 
-uint64_t pico_get_timestamp_us_callback();
+
+//uint64_t pico_get_timestamp_us_callback();
 
 /**
  * Sets the signal for pico_tx.
@@ -129,7 +126,7 @@ void pico_rx_stop_receiving(rf_pico_receiver* self);
  * @param user_data A pointer to user-defined data.
  * @return The return value is not used.
  */
-void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callback);
+void pico_init_receiver(rf_pico_receiver* self, void* result_callback);
 
 /**
  * @brief Initializes the RF Pico transmitter.
@@ -137,7 +134,7 @@ void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callb
  * @param self The RF Pico transmitter.
  * @param gpio The GPIO pin to use for the transmitter.
  */
-void pico_init_transmitter(rf_pico_transmitter* self, uint8_t gpio);
+void pico_init_transmitter(rf_pico_transmitter* self);
 
 /**
  * @brief Initializes the RF Pico receiver.

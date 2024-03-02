@@ -10,22 +10,46 @@
 #include <string.h>
 #include <math.h>
 #include "debug_logging.h"
+#include <math.h>
 
 #include "rf_device.h"
 
+
+void tx_send_bit(TX_Device* self, uint64_t buffer, uint8_t bit_index);
+void tx_set_state(TX_Device* self, TX_State state);
+void tx_state_process_wakeup(TX_Device* self);
+void tx_state_process_sync(TX_Device* self);
+void tx_state_process_send_start(TX_Device* self);
+void tx_state_process_send_length(TX_Device* self);
+void tx_state_process_send_payload(TX_Device* self);
+void tx_state_process_send_crc(TX_Device* self);
+
+int rx_do_sampling(RX_Device* self);
+void rx_set_state(RX_Device* self, RX_State state);
+void rx_state_process_sync(RX_Device* self);
+void rx_state_process_wait_start(RX_Device* self);
+void rx_state_process_read_length(RX_Device* self);
+void rx_state_process_read_payload(RX_Device* self);
+void rx_state_process_read_crc(RX_Device* self);
+
+
 void tx_init(   TX_Device* self,
-                void *set_signal,
-                void *set_onetime_trigger_time,
-                void *set_recurring_trigger_time,
-                void *cancel_trigger,
+                void (*set_signal),
+                void (*set_onetime_trigger_time),
+                void (*set_recurring_trigger_time),
+                void (*cancel_trigger),
                 void* user_data)
 {
     memset(self, 0, sizeof(TX_Device));
+
+    // Set functions
     self->set_signal = set_signal;
     self->set_onetime_trigger_time = set_onetime_trigger_time;
     self->set_recurring_trigger_time = set_recurring_trigger_time;
     self->cancel_trigger = cancel_trigger;
     self->user_data = user_data;
+
+    // Start state
     tx_set_state(self, TX_WAKEUP);
 }
 
@@ -106,7 +130,7 @@ void tx_state_process_sync(TX_Device* self)
     if (self->step_index == (SYNC_SYMBOL_LENGTH - 1))
     {
         // First bit set, set the recurring trigger time
-        self->set_recurring_trigger_time((STATIC_SAMPLING_FREQUENCY * SAMPLING_COUNT), self->user_data);  // 1ms for each bit
+        self->set_recurring_trigger_time(TX_FREQUENCY, self->user_data);  // 1ms for each bit
     }
     else if (!self->step_index)  // All sent, go to next state
     {
@@ -165,65 +189,89 @@ void rx_init(   RX_Device* self,
                 void* user_data)
 {
     memset(self, 0, sizeof(RX_Device));
+
+    // Set functions
     self->result_callback = result_callback;
     self->set_recurring_trigger_time = set_recurring_trigger_time;
     self->cancel_trigger = cancel_trigger;
     self->user_data = user_data;
-    rx_set_state(self, RX_SYNC);
+    // Prepare sync data
+    uint8_t start_sync_pattern = SYNC_SYMBOL >> (SYNC_SYMBOL_LENGTH - 4); // Get 4 highest bits
+    uint8_t sync_pattern_length = SAMPLING_COUNT * 4;
+    uint16_t bitmask = (start_sync_pattern >> 3) & 0x1; // Use 4th bit as the mask
+    for (int i = 0; i < sync_pattern_length; i++)
+    {
+        self->sync_pattern |= bitmask;
+        self->sync_pattern_mask |= 1;
+        if (i < (sync_pattern_length - 1))
+        {
+            self->sync_pattern <<= 1;
+            self->sync_pattern_mask <<= 1;
+        }
+
+        if (!((i + 1) % SAMPLING_COUNT))
+        {
+            start_sync_pattern <<= 1;
+            bitmask = (start_sync_pattern >> 3) & 0x1;
+        }
+    }
 }
 
-void rx_set_sync_mode(RX_Device* self, uint8_t mode, uint64_t (*timestamp_callback)())
+void rx_set_external_synchronizer(RX_Device* self, RX_Synchronizer* synchronizer)
 {
-    if (mode == SYNC_MODE_DYNAMIC && timestamp_callback != NULL)
+    self->ext_synchronizer = synchronizer;
+}
+
+void rx_set_detected_transmission_rate(RX_Device* self, float rate, uint8_t signal_status)
+{
+    // Adjust the recurring trigger time based on the detected transmission rate
+
+   // self->cancel_trigger(self->user_data);
+
+    uint16_t sync_rate = round((float) rate / SAMPLING_COUNT);
+    self->set_recurring_trigger_time(sync_rate, self->user_data);
+
+    rx_set_state(self, RX_WAIT_START);
+    if (signal_status)
     {
-        self->synchronizer = malloc(sizeof(RX_Synchronizer));
-        rx_synchronizer_init(self->synchronizer, timestamp_callback);
+        self->rx_bit.high_sample_count = 1;
     }
     else
     {
-        free(self->synchronizer);
-        self->synchronizer = NULL;
+        self->rx_bit.low_sample_count = 1;
     }
+    self->rx_bit.sync_index = 1;
 }
+
 
 void rx_set_state(RX_Device* self, RX_State state)
 {
-   // TRACE("Setting state to %d", state);
-
+  //  TRACE("Setting state to %d", state);
     self->state = state;
     switch (state)
     {
         case RX_SYNC:
-            self->state_function = rx_state_process_sync;
-            
-            if (self->synchronizer)
+            if (self->ext_synchronizer)
             {
-                rx_synchronizer_set_state(self->synchronizer, RX_SYNCHRONIZER_STATE_WAIT_SYNC);
-                
-                // Set back the default sampling rate
-                self->cancel_trigger(self->user_data);
-                self->set_recurring_trigger_time(SYNC_SAMPLING_RATE, self->user_data);
+                self->ext_synchronizer->wait_for_sync(self->ext_synchronizer, self);
+                self->state_function = NULL;
+            }
+            else
+            {
+                self->state_function = rx_state_process_sync;
             }
             break;
         case RX_WAIT_START:
-           //     TRACE("Setting state to %d", state);
-
             self->state_function = rx_state_process_wait_start;
-
             break;
         case RX_READ_LENGTH:
-
-       // TRACE("Setting state to %d", state);
             self->state_function = rx_state_process_read_length;
-            
             break;
         case RX_READ_PAYLOAD:
             self->state_function = rx_state_process_read_payload;
-            
             break;
         case RX_READ_CRC:
             self->state_function = rx_state_process_read_crc;
-            
             break;    
         default:
             break;
@@ -284,7 +332,7 @@ int rx_do_sampling(RX_Device* self)
     return 0;    
 }
 
-void rx_callback(RX_Device* self, uint8_t signal_status)
+void rx_signal_callback(RX_Device* self, uint8_t signal_status)
 {
     self->signal_state = signal_status;
  
@@ -303,38 +351,19 @@ void rx_callback(RX_Device* self, uint8_t signal_status)
             return;
         } 
     }
-
-    self->state_function(self);
+    if (self->state_function)
+    {
+        self->state_function(self);
+    }
 }
 
 void rx_state_process_sync(RX_Device* self)
 {
-    if (self->synchronizer != NULL)
-    {
-        rx_synchronizer_process(self->synchronizer, self->signal_state);
-        if (self->synchronizer->state == RX_SYNCHRONIZER_STATE_DONE)
-        {
-            float sampling_rate = (float) self->synchronizer->detected_transmission_rate / SAMPLING_COUNT;
-
-            // Adjust the recurring trigger time based on the detected transmission rate
-            self->cancel_trigger(self->user_data);
-            TRACE("sync done %u", self->synchronizer->detected_transmission_rate);
-            self->set_recurring_trigger_time(round(sampling_rate), self->user_data);
-            rx_set_state(self, RX_WAIT_START);
-
-            // Assuming we always start sync time detection from 0 bit in sync pattern and have the 
-            // sync bit pattern detection count even, we can assume that we have already collected one low sample
-            self->rx_bit.low_sample_count = 1;
-            self->rx_bit.sync_index = 1;
-        }
-    }
-    else
-    {
         // Using static synchronization
 
         self->buffer |= self->signal_state;
-        self->buffer &= SYNC_PATTERN_MASK;
-        if (self->buffer == SYNC_PATTERN)
+        self->buffer &= self->sync_pattern_mask;
+        if (self->buffer == self->sync_pattern)
         {
             // Sync pattern found and our sampler is in sync. Start reading bits.
             rx_set_state(self, RX_WAIT_START);
@@ -344,7 +373,6 @@ void rx_state_process_sync(RX_Device* self)
             // Continue
             self->buffer <<= 1ULL;
         }
-    }
 }
 
 void rx_state_process_wait_start(RX_Device* self)
@@ -431,15 +459,10 @@ void rx_state_process_read_crc(RX_Device* self)
 
 void rx_start_receiving(RX_Device* self)
 {
-    if (!self->synchronizer)
+    rx_set_state(self, RX_SYNC);
+    if (!self->ext_synchronizer)
     {
-        // Static synchornization so use static sampling frequency
-        self->set_recurring_trigger_time(STATIC_SAMPLING_FREQUENCY, self->user_data);
-    }
-    else
-    {
-        // Dynamic synchronization, we need to start with the sampling frequency needed by synchronizer
-        self->set_recurring_trigger_time(SYNC_SAMPLING_RATE, self->user_data);
+        self->set_recurring_trigger_time((TX_FREQUENCY / SAMPLING_COUNT), self->user_data);
     }
 }
 

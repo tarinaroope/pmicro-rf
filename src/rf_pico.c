@@ -1,21 +1,21 @@
 #include <string.h>
+#include <stdlib.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "rf_pico.h"
+#include "pico_synchronizer.h"
 #include "debug_logging.h"
-
 
 void pico_tx_set_signal(uint8_t is_high, void* user_data)
 {
-    rf_pico_transmitter* transmitter = (rf_pico_transmitter*) user_data;
-    gpio_put(transmitter->gpio, (uint8_t) is_high);
+    gpio_put(GPIO_PIN, (uint8_t) is_high);
 }
 
 void pico_data_read_callback(void *user_data)
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
-    bool gpio_value = gpio_get(receiver->gpio);
-    rx_callback(&(receiver->rx_device), (uint8_t) gpio_value);
+    bool gpio_value = gpio_get(GPIO_PIN);
+    rx_signal_callback(&(receiver->rx_device), (uint8_t) gpio_value);
 }
 
 int64_t pico_tx_alarm_callback(alarm_id_t id, void *user_data) 
@@ -60,22 +60,22 @@ uint64_t pico_get_timestamp_us_callback()
     return to_us_since_boot(get_absolute_time());
 }
 
-void pico_init_receiver(rf_pico_receiver* self, uint8_t gpio, void* result_callback)
+void pico_init_receiver(rf_pico_receiver* self, void* result_callback)
 {
-    self->gpio = gpio;
-    gpio_init(self->gpio);
-    gpio_set_dir(self->gpio, GPIO_IN);
+    gpio_init(GPIO_PIN);
+    gpio_set_dir(GPIO_PIN, GPIO_IN);
 
     rx_init(&(self->rx_device),result_callback, pico_rx_set_recurring_trigger_time, 
             pico_rx_cancel_trigger, self);
-    rx_set_sync_mode(&(self->rx_device), SYNC_MODE_DYNAMIC, pico_get_timestamp_us_callback);
+    Pico_Synchronizer* synchronizer = (Pico_Synchronizer*) malloc(sizeof(Pico_Synchronizer));
+    pico_synchronizer_init(synchronizer);
+    rx_set_external_synchronizer(&(self->rx_device),&(synchronizer->base));
 }
 
-void pico_init_transmitter(rf_pico_transmitter* self, uint8_t gpio)
+void pico_init_transmitter(rf_pico_transmitter* self)
 {
-    self->gpio = gpio;
-    gpio_init(self->gpio);
-    gpio_set_dir(self->gpio, GPIO_OUT);
+    gpio_init(GPIO_PIN);
+    gpio_set_dir(GPIO_PIN, GPIO_OUT);
 
 #ifdef USING_PICO_W
     cyw43_arch_init();
@@ -111,8 +111,6 @@ void pico_rx_set_recurring_trigger_time(uint64_t time_to_trigger, void* user_dat
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
     repeating_timer_t* timer = (repeating_timer_t*) &(receiver->timer);
-   // TRACE("timer:%lld %ld", timer->delay_us,timer->alarm_id );
-
     add_repeating_timer_us(time_to_trigger * -1, pico_rx_repeating_timer_callback, user_data, timer);
 }
 
@@ -120,8 +118,6 @@ void pico_rx_cancel_trigger(void* user_data)
 {
     rf_pico_receiver* receiver = (rf_pico_receiver*) user_data;
     repeating_timer_t* timer = (repeating_timer_t*) &(receiver->timer);
-   // TRACE("timer:%lld %ld", timer->delay_us,timer->alarm_id );
-
     cancel_repeating_timer(timer);
 } 
 
