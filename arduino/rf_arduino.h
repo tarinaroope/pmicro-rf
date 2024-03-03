@@ -17,20 +17,14 @@ extern "C"
     #include "rf_device.h"
 }
 
-/**
- * @brief Structure representing an Arduino transmitter.
- * 
- * This structure holds information about the Arduino transmitter, including the TX device used for transmission,
- * the interrupt count, and a flag indicating whether the transmitter is operating in one-shot timer mode.
- */
 typedef struct 
 {  
-    TX_Device tx_device;        /**< TX device used for transmission. */
-    bool one_shot_timer;        /**< Flag indicating whether the transmitter is operating in one-shot timer mode. */
-    uint8_t target_interrupt_count; /**< Target interrupt count */
-    uint16_t interrupt_count;    /**< Number of interrupts triggered. */
-    bool one_shot_timer_triggered; /**< Flag indicating whether the one-shot timer has been triggered. */
-    bool timer_initialized;       /**< Flag indicating whether the timer has been initialized. */
+    TX_Device tx_device;        
+    bool one_shot_timer;        
+    uint8_t target_interrupt_count; 
+    uint16_t interrupt_count;    
+    bool one_shot_timer_triggered; 
+    bool timer_initialized;       
 } arduino_transmitter;
 
 arduino_transmitter* get_global_transmitter();

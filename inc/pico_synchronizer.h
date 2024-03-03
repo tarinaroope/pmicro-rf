@@ -39,7 +39,7 @@ struct Pico_Synchronizer
     repeating_timer_t timer;
     //uint8_t wrongcount;
 
-    void (*state_function)(Pico_Synchronizer* /*self*/, uint8_t /*signal_state*/); /**< Function pointer to the state processing function. */
+    void (*state_function)(Pico_Synchronizer* /*self*/, uint8_t /*signal_state*/);
 };
 
 void pico_synchronizer_start(RX_Synchronizer* self, RX_Device* rx_device);

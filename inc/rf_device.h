@@ -26,80 +26,61 @@ typedef struct RX_Synchronizer RX_Synchronizer;
 typedef struct RX_Device RX_Device;
 typedef struct TX_Device TX_Device;
 
-/**
- * @brief Structure representing a RF message.
- * 
- * This structure contains the fields necessary to represent a RF message.
- * It includes the message data, message length, and message CRC.
- */
 typedef struct
 {
-    uint64_t    message;           /**< The message data. */
-    uint8_t     message_length;    /**< The length of the message. */
-    uint16_t    message_crc;       /**< The CRC of the message. */
+    uint64_t    message;           
+    uint8_t     message_length;    
+    uint16_t    message_crc;       
 } RF_Message;
 
-/**
- * @brief Enumeration representing the different states of the transmission process.
- */
 typedef enum
 {
     TX_INITIAL = 0,
-    TX_WAKEUP,          /**< Wakeup state */
-    TX_SYNC,                /**< Sync state */
-    TX_SEND_START,          /**< Send start state */
-    TX_SEND_LENGTH,         /**< Send length state */
-    TX_SEND_PAYLOAD,        /**< Send payload state */
-    TX_SEND_CRC             /**< Send CRC state */
+    TX_WAKEUP,          
+    TX_SYNC,                
+    TX_SEND_START,          
+    TX_SEND_LENGTH,         
+    TX_SEND_PAYLOAD,        
+    TX_SEND_CRC             
 }TX_State;
 
-/**
- * @brief Structure representing a received bit in a radio frequency device.
- */
 typedef struct 
 {
-    uint8_t low_sample_count; /**< Number of samples with a value of 0. */
-    uint8_t high_sample_count; /**< Number of samples with a value of 1. */
-    uint8_t sync_index;     /**< Current sync index. */
-    uint8_t latest_bit;     /**< Value of the latest received bit. */
+    uint8_t low_sample_count; 
+    uint8_t high_sample_count; 
+    uint8_t sync_index;     
+    uint8_t latest_bit;     
 } RX_Bit;
 
-/**
- * @brief Enumeration representing the different states of the RX (receive) process.
- */
 typedef enum 
 {
-    RX_SYNC = 0,            /**< Syncronization state */
-    RX_WAIT_START,          /**< Waiting for start sequence state */
-    RX_READ_LENGTH,         /**< Reading payload length state */
-    RX_READ_PAYLOAD,        /**< Reading payload state */
-    RX_READ_CRC             /**< Reading CRC (cyclic redundancy check) state */
+    RX_SYNC = 0,            
+    RX_WAIT_START,          
+    RX_READ_LENGTH,         
+    RX_READ_PAYLOAD,        
+    RX_READ_CRC             
 }RX_State;
 
-/**
- * @struct RX_Device
- * @brief Structure representing the receiver (RX) device.
- */
 struct RX_Device
 {
-    RX_State    state; /**< Current state of the receiver device. */
-    RX_Bit      rx_bit; /**< Current bit being received. */
-    RF_Message  message; /**< Message received. */
+    RX_State    state; 
+    RX_Bit      rx_bit; 
+    RF_Message  message; 
 
-    uint8_t     signal_state; /**< Current state of the received signal. */
-    uint64_t    buffer; /**< Buffer to store received bits. */
-    uint8_t     buffer_current_bit_index; /**< Index pointing to next free bit slot in buffer*/
+    uint8_t     signal_state; 
+    uint64_t    buffer; 
+    uint8_t     buffer_current_bit_index; 
 
     uint64_t    sync_pattern;
-    uint64_t    sync_pattern_mask; /**< Mask for detecting the synchronization pattern. */
+    uint64_t    sync_pattern_mask; 
     
     RX_Synchronizer* ext_synchronizer;
 
-    void (*state_function)(RX_Device* /*self*/); /**< Function pointer to the state processing function. */
-    void (*result_callback) (RF_Message /*message*/); /**< Function pointer to the result callback function. */
-    void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
-    void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
-    void* user_data; /**< User-defined data. */
+    void (*state_function)(RX_Device* /*self*/); 
+    void (*result_callback) (RF_Message /*message*/); 
+    void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
+    void (*cancel_trigger)(void* /*trigger_user_data*/); 
+    void* user_data; 
 };
 
 struct RX_Synchronizer
@@ -107,40 +88,111 @@ struct RX_Synchronizer
     void (*wait_for_sync)(RX_Synchronizer* self, RX_Device* rx_device);
 };
 
-/**
- * @struct TX_Device
- * @brief Structure representing the transmitter (TX) device.
- */
 struct TX_Device
 {
-    TX_State    state; /**< Current state of the transmitter device. */
-    RF_Message  message; /**< Message to be transmitted. */
+    TX_State    state; 
+    RF_Message  message; 
+    uint8_t     step_index; 
 
-    uint8_t     step_index; /**< Index of the current step in the transmission process. */
-
-    void (*state_function)(TX_Device* /*self*/); /**< Function pointer to the state processing function. */
-    void (*set_signal)(uint8_t /*is_high*/, void* /*user_data*/); /**< Function pointer to set the signal. */
-    void (*set_onetime_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the one-time trigger time. */
-    void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); /**< Function pointer to set the recurring trigger time. */
-    void (*cancel_trigger)(void* /*trigger_user_data*/); /**< Function pointer to cancel the trigger. */
-    void* user_data; /**< User-defined data. */
+    void (*state_function)(TX_Device* /*self*/); 
+    void (*set_signal)(uint8_t /*is_high*/, void* /*user_data*/); 
+    void (*set_onetime_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
+    void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
+    void (*cancel_trigger)(void* /*trigger_user_data*/); 
+    void* user_data; 
 };
 
 // Transmitter functions
 
+/**
+ * @brief Initializes the TX device.
+ *
+ * @param self Pointer to the TX device structure.
+ * @param set_signal Pointer to the function for setting the signal.
+ * @param set_onetime_trigger_time Pointer to the function for setting a one-time trigger time.
+ * @param set_recurring_trigger_time Pointer to the function for setting a recurring trigger time.
+ * @param cancel_trigger Pointer to the function for canceling the trigger.
+ * @param user_data User-defined data pointer.
+ */
 void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_time), 
                 void (*set_recurring_trigger_time), void (*cancel_trigger), void* user_data);
+
+/**
+ * @brief Sends a message using the TX device.
+ *
+ * @param self Pointer to the TX device structure.
+ * @param message The message to be sent.
+ * @return Returns 0 if the message is successfully sent, otherwise returns -1.
+ */
 int8_t tx_send_message(TX_Device* self, RF_Message message);
+
+/**
+ * @brief Callback function for the TX device.
+ *
+ * Called by timer ticks.
+ *
+ * @param self Pointer to the TX device structure.
+ */
 void tx_callback(TX_Device* self);
 
 // Receiver functions
 
+/**
+ * @brief Initializes the RX device.
+ *
+ * @param self Pointer to the RX device structure.
+ * @param result_callback Pointer to the callback function for receiving results.
+ * @param set_recurring_trigger_time Pointer to the function for setting recurring trigger time.
+ * @param cancel_trigger Pointer to the function for canceling trigger.
+ * @param user_data User-defined data pointer.
+ */
 void rx_init( RX_Device* self, void* result_callback, void* set_recurring_trigger_time, 
                 void* cancel_trigger, void* user_data);
+
+/**
+ * @brief Callback function for receiving RF signals.
+ *
+ * Function called be the timer ticks.
+ * Performs signal sampling, and processes the received data.
+ *
+ * @param self Pointer to the RX device structure.
+ * @param signal_status Status of the received signal (high or low).
+ */
 void rx_signal_callback(RX_Device* self, uint8_t signal_status);
+
+/**
+ * @brief Sets the external synchronizer for the RX device.
+ *
+ * This function sets the external synchronizer for the RX device. 
+ *
+ * @param self Pointer to the RX device structure.
+ * @param synchronizer Pointer to the external synchronizer structure.
+ */
 void rx_set_external_synchronizer(RX_Device* self, RX_Synchronizer* synchronizer);
+
+/**
+ * @brief Sets the detected transmission rate and adjusts trigger time.
+ *
+ * Called by the external synchronizer after detecting the transmission rate from sync signal. 
+ * 
+ * @param self Pointer to the RX device structure.
+ * @param rate Detected transmission rate of 1 bit.
+ * @param signal_status Status of the last signal (high or low).
+ */
 void rx_set_detected_transmission_rate(RX_Device* self, float rate, uint8_t signal_status);
+
+/**
+ * @brief Starts the receiving process for the RX device.
+ *
+ * @param self Pointer to the RX device structure.
+ */
 void rx_start_receiving(RX_Device* self);
+
+/**
+ * @brief Stops the receiving process for the RX device.
+ *
+ * @param self Pointer to the RX device structure.
+ */
 void rx_stop_receiving(RX_Device* self);
 
 #endif // RFDEVICE_H

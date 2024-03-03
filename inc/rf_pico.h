@@ -6,25 +6,13 @@
 
 #define GPIO_PIN 22
 
-/**
- * @brief Structure representing a RF Pico transmitter.
- * 
- * This structure holds information about a RF Pico transmitter, including the GPIO pin, 
- * the TX device, and the repeating timer.
- */
 typedef struct 
 {
-    TX_Device tx_device;        /**< TX device used for transmission. */
-    repeating_timer_t timer;    /**< Repeating timer used for transmission. */
+    TX_Device tx_device;        
+    repeating_timer_t timer;    
 
 } rf_pico_transmitter;
 
-/**
- * @brief Structure representing a Pico RF receiver.
- * 
- * This structure contains the necessary information for a Pico RF receiver,
- * including the GPIO pin, the RX device, and the repeating timer.
- */
 typedef struct 
 {
     RX_Device rx_device;
@@ -34,8 +22,10 @@ typedef struct
 /**
  * @brief Initializes the RF Pico transmitter.
  *
- * @param self The RF Pico transmitter.
- * @param gpio The GPIO pin to use for the transmitter.
+ * This function initializes the RF Pico transmitter by configuring GPIO pins
+ * and setting up the transmitter device.
+ *
+ * @param self Pointer to the RF Pico transmitter structure.
  */
 void pico_init_transmitter(rf_pico_transmitter* self);
 
@@ -48,31 +38,31 @@ void pico_init_transmitter(rf_pico_transmitter* self);
 void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message);
 
 /**
- * @brief Callback function for the Pico RX alarm.
+ * @brief Initializes the RF Pico receiver.
  *
- * This function is called when the Pico RX alarm is triggered.
+ * This function initializes the RF Pico receiver by configuring GPIO pins,
+ * setting up the receiver device, and initializing an external synchronizer.
  *
- * @param id The ID of the alarm.
- * @param user_data A pointer to user-defined data.
- * @return The return value is not used.
+ * @param self Pointer to the RF Pico receiver structure.
+ * @param result_callback Pointer to the callback function for receiving results.
  */
 void pico_init_receiver(rf_pico_receiver* self, void* result_callback);
 
 /**
- * @brief Callback function for the Pico RX alarm.
+ * @brief Starts receiving data using the RF Pico receiver.
  *
- * This function is called when the Pico RX alarm is triggered.
+ * This function starts receiving data using the RF Pico receiver device.
  *
- * @param id The ID of the alarm.
- * @param user_data A pointer to user-defined data.
- * @return The return value is not used.
+ * @param self Pointer to the RF Pico receiver structure.
  */
 void pico_rx_start_receiving(rf_pico_receiver* self);
 
 /**
- * @brief Stops the Pico RX from receiving.
+ * @brief Stops receiving data using the RF Pico receiver.
  *
- * @param self The RF Pico receiver.
+ * This function stops receiving data using the RF Pico receiver device.
+ *
+ * @param self Pointer to the RF Pico receiver structure.
  */
 void pico_rx_stop_receiving(rf_pico_receiver* self);
 
