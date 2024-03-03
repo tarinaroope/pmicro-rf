@@ -2,14 +2,13 @@
  * @file rf_arduino.h
  * @brief Header file for Arduino transmitter functionality.
  * 
- * This file defines the Arduino transmitter structure and function prototypes for setting up the transmitter,
- * setting the signal, and managing trigger times.
+ * This file defines the Arduino transmitter structure and function prototypes for setting up the transmitter.
+ * 
  */
 
 #ifndef RF_ARDUINO_H
 #define RF_ARDUINO_H
 
-#define F_CPU 8000000UL
 #define TX_PIN PB1
 #define TIMER_INTERRUPT_COUNT 10
 
@@ -26,20 +25,15 @@ extern "C"
  */
 typedef struct 
 {  
-        TX_Device tx_device;        /**< TX device used for transmission. */
-        uint8_t interrupt_count;    /**< Number of interrupts triggered. */
-        bool one_shot_timer;        /**< Flag indicating whether the transmitter is operating in one-shot timer mode. */
+    TX_Device tx_device;        /**< TX device used for transmission. */
+    bool one_shot_timer;        /**< Flag indicating whether the transmitter is operating in one-shot timer mode. */
+    uint8_t target_interrupt_count; /**< Target interrupt count */
+    uint16_t interrupt_count;    /**< Number of interrupts triggered. */
+    bool one_shot_timer_triggered; /**< Flag indicating whether the one-shot timer has been triggered. */
+    bool timer_initialized;       /**< Flag indicating whether the timer has been initialized. */
 } arduino_transmitter;
 
-/**
- * @brief Sets up the timer for the Arduino transmitter.
- * 
- * This function initializes the timer for the Arduino transmitter and sets the time to trigger the interrupt.
- * 
- * @param self Pointer to the arduino_transmitter structure.
- * @param time_to_trigger The time in microseconds to trigger the interrupt.
- */
-void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger);
+arduino_transmitter* get_global_transmitter();
 
 /**
  * @brief Initializes the Arduino transmitter.
@@ -59,36 +53,6 @@ void arduino_tx_init(arduino_transmitter* self, uint8_t pin);
  * @param is_high Flag indicating whether the signal should be set to high (true) or low (false).
  * @param user_data Pointer to user-defined data.
  */
-void arduino_tx_set_signal(uint8_t is_high, void* user_data);
-
-/**
- * @brief Sets the one-time trigger time for the Arduino transmitter.
- * 
- * This function sets the one-time trigger time for the Arduino transmitter.
- * 
- * @param time_to_trigger The time in microseconds to trigger the interrupt.
- * @param user_data Pointer to user-defined data.
- */
-void arduino_tx_set_onetime_trigger_time(uint64_t time_to_trigger, void* user_data);
-
-/**
- * @brief Sets the recurring trigger time for the Arduino transmitter.
- * 
- * This function sets the recurring trigger time for the Arduino transmitter.
- * 
- * @param time_to_trigger The time in microseconds to trigger the interrupt.
- * @param user_data Pointer to user-defined data.
- */
-void arduino_tx_set_recurring_trigger_time(uint64_t time_to_trigger, void* user_data);
-
-/**
- * @brief Cancels the trigger for the Arduino transmitter.
- * 
- * This function cancels the trigger for the Arduino transmitter.
- * 
- * @param user_data Pointer to user-defined data.
- */
-void arduino_tx_cancel_trigger(void* user_data);
 
 /**
  * @brief Sends a message using the Arduino transmitter.

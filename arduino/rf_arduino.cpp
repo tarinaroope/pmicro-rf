@@ -1,42 +1,92 @@
-#include <avr/io.h>
 #include <avr/interrupt.h>
 #include "rf_arduino.h"
-
-#define F_CPU 8000000UL
-#define TX_PIN PB1
-#define TIMER_INTERRUPT_COUNT 10
+#include <arduino.h>
 
 arduino_transmitter g_transmitter;
 
-ISR (TIMER0_OVF_vect)      //Interrupt vector for Timer0
-{
-  if (g_transmitter.interrupt_count == TIMER_INTERRUPT_COUNT)
+ISR (TIMER1_COMPA_vect)      //Interrupt vector for Timer1
+{ 
+  // Increment count only in case of recurring timer or if one-shot timer has not been triggered
+  if (!g_transmitter.one_shot_timer || !g_transmitter.one_shot_timer_triggered)
   {
-    tx_callback(&(g_transmitter.tx_device));
-    g_transmitter.interrupt_count;
+    g_transmitter.interrupt_count++;
+  }
+  if (g_transmitter.interrupt_count == g_transmitter.target_interrupt_count)
+  {
     if (g_transmitter.one_shot_timer)
     {
-      TCCR0B=0x00;
+      // In case of one-shot timer, flag that timer has been triggered
+      g_transmitter.one_shot_timer_triggered = true;
     }
-  }
-  else
-  {
-    g_transmitter.interrupt_count++; 
+    tx_callback(&(g_transmitter.tx_device));
+    g_transmitter.interrupt_count = 0;
   }
 }
 
-void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger)   
+static void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger)   
 {
   self->interrupt_count = 0;
+  self->target_interrupt_count = time_to_trigger / 100; // 100us per interrupt
+
+  if (!self->timer_initialized)
+  {
+    TCCR1 = 0; // Stop timer
+    TCNT1 = 0; // Zero timer
+    GTCCR = _BV(PSR1); // Reset prescaler
+    OCR1A = 204; // Target to trigger every 100us. Seems that this varies based on voltage and temperature...
+    OCR1C = 204; // Set to same value to reset timer1 to 0 after a compare match
+    TIMSK = _BV(OCIE1A); // Interrupt on compare match with OCR1A
   
-  TCCR0A = 0x00;
-  TCCR0B = 0x00;
-  TCCR0B |= (1<<CS01);   //prescaling with 8
-  TCCR0A |= (1<<WGM01);//toggle mode and compare match  mode
-  OCR0A = (time_to_trigger / TIMER_INTERRUPT_COUNT); // E.g. 1000us / 10 -> 100us * 10 times interrupt = 1000us
-  TCNT0 = 0;
-  //sei();   //enabling global interrupt
-  TIMSK |= (1<<OCIE0A); 
+    // Start timer in CTC mode; prescaler = 4; 
+    TCCR1 = _BV(CTC1) | _BV(CS11) | _BV(CS10); 
+    self->timer_initialized = true;
+  }
+}
+
+arduino_transmitter* get_global_transmitter()
+{
+  return &g_transmitter;
+}
+
+static void arduino_tx_set_signal(uint8_t is_high, void* user_data)
+{
+  if (is_high)
+  {
+    PORTB |= (1 << TX_PIN);			// HIGH
+  }
+  else
+  {
+    PORTB &= ~(1 << TX_PIN);			// LOW
+  }
+}
+
+static void arduino_tx_set_onetime_trigger_time(uint64_t time_to_trigger, void* user_data)
+{
+  arduino_transmitter* tx = (arduino_transmitter*) user_data;
+  tx->one_shot_timer = true;
+  tx->one_shot_timer_triggered = false;
+  setup_timer(tx, time_to_trigger);
+}
+
+static void arduino_tx_set_recurring_trigger_time(uint64_t time_to_trigger, void* user_data)
+{
+  arduino_transmitter* tx = (arduino_transmitter*) user_data;
+  tx->one_shot_timer = false;
+  setup_timer(tx, time_to_trigger);
+}
+
+static void arduino_tx_cancel_trigger(void* user_data)
+{
+  TCCR1 = 0;
+  arduino_transmitter* tx = (arduino_transmitter*) user_data;
+  tx->interrupt_count = 0;
+  tx->timer_initialized = false;
+} 
+
+void arduino_tx_send_message(arduino_transmitter* self, RF_Message message)
+{
+  self->tx_device.message = message;
+  tx_callback(&(self->tx_device));
 }
 
 void arduino_tx_init(arduino_transmitter* self, uint8_t pin)
@@ -45,45 +95,5 @@ void arduino_tx_init(arduino_transmitter* self, uint8_t pin)
 
   tx_init(&(self->tx_device), arduino_tx_set_signal, arduino_tx_set_onetime_trigger_time, 
           arduino_tx_set_recurring_trigger_time, arduino_tx_cancel_trigger, self);
-}
-
-void arduino_tx_set_signal(uint8_t is_high, void* user_data)
-{
-  if (is_high)
-  {
-    PORTB |= (1 << TX_PIN);			//replaces digitalWrite(PB3, HIGH);
-  }
-  else
-  {
-    PORTB &= ~(1 << TX_PIN);			//replaces digitalWrite(PB3, LOW);
-  }
-}
-
-void arduino_tx_set_onetime_trigger_time(uint64_t time_to_trigger, void* user_data)
-{
-  arduino_transmitter* tx = (arduino_transmitter*) user_data;
-  tx->one_shot_timer = true;
-  setup_timer(tx, time_to_trigger);
-}
-
-void arduino_tx_set_recurring_trigger_time(uint64_t time_to_trigger, void* user_data)
-{
-  arduino_transmitter* tx = (arduino_transmitter*) user_data;
-  tx->one_shot_timer = false;
-  setup_timer(tx, time_to_trigger);
-}
-
-void arduino_tx_cancel_trigger(void* user_data)
-{
-  TCCR0B=0x00;
-  arduino_transmitter* tx = (arduino_transmitter*) user_data;
-  tx->interrupt_count = 0;
-} 
-
-void arduino_tx_send_message(arduino_transmitter* self, RF_Message message)
-{
-    // TODO: check initial status
-    self->tx_device.message = message;
-    tx_callback(&(self->tx_device));
 }
 
