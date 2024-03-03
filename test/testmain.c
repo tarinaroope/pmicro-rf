@@ -37,7 +37,7 @@ int main (void)
        sleep_ms(2000);
 
     rf_pico_receiver rec;
-    pico_init_receiver(&rec, GPIO_PIN, report_result);
+    pico_init_receiver(&rec, report_result);
     sleep_ms(1000);
     pico_rx_start_receiving(&rec);
     while (1)
