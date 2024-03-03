@@ -7,23 +7,18 @@
 #include "rf_pico.h"
 #include "debug_logging.h"
 
-void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state);
-void pico_synchronizer_set_state(Pico_Synchronizer* self, Pico_Synchronizer_State state);
-void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t signal_state);
-void pico_synchronizer_state_start_sync(Pico_Synchronizer* self, uint8_t signal_state);
-void pico_synchronizer_state_sync(Pico_Synchronizer* self, uint8_t signal_state);
-int8_t rx_sampler_sync_collect_high(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
-int8_t rx_sampler_sync_collect_low(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count);
- 
+static void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state);
+static void pico_synchronizer_set_state(Pico_Synchronizer* self, Pico_Synchronizer_State state);
+
 Pico_Synchronizer* global_instance; // needed due to the interrupt handlers
 
-void __not_in_flash_func(cancel_gpio_interrupt)()
+static void __not_in_flash_func(cancel_gpio_interrupt)()
 { 
     irq_set_enabled(IO_IRQ_BANK0, false);    
     gpio_set_irq_enabled(GPIO_PIN, 0, false);
 }
 
-void __not_in_flash_func(gpio_int_handler)()
+static void __not_in_flash_func(gpio_int_handler)()
 {
     if (global_instance->waiting_for_edge)
     {
@@ -60,7 +55,7 @@ void __not_in_flash_func(gpio_int_handler)()
     gpio_acknowledge_irq(GPIO_PIN, GPIO_IRQ_EDGE_FALL);
 }
 
-void __not_in_flash_func(pico_synchronizer_register_gpio_int)()
+static void __not_in_flash_func(pico_synchronizer_register_gpio_int)()
 {   
     if (!irq_is_enabled(IO_IRQ_BANK0))
     {
@@ -71,10 +66,103 @@ void __not_in_flash_func(pico_synchronizer_register_gpio_int)()
     //global_instance->wrongcount = 0;
 }
 
-bool pico_synchronizer_repeating_timer_callback(struct repeating_timer *t)
+static bool pico_synchronizer_repeating_timer_callback(struct repeating_timer *t)
 {
     pico_synchronizer_process((Pico_Synchronizer*) t->user_data, (uint8_t) gpio_get(GPIO_PIN));
     return true;
+}
+
+static int8_t rx_sampler_sync_collect_low(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
+{    
+    if (!signal_state)
+    {
+        self->low_sample_count += 1;
+    }
+    else
+    {
+        if (!expected_count)
+        {
+            // No expected sample count, check against defined low and high limit
+            if (self->low_sample_count >= SKEW_LOW_LIMIT && 
+                self->low_sample_count <= SKEW_HIGH_LIMIT)
+            {
+                // We have enough low samples, return number of collected samples
+                return self->low_sample_count;
+            }
+            else
+            {
+                // We won't allow any "extra" high samples
+                return (-1) * self->low_sample_count;
+            }
+        }
+
+        self->high_sample_count += 1;
+
+        // Check if we have too many high samples
+        if (self->high_sample_count > STATE_TOLERANCE)
+        {
+            return (-1) * self->high_sample_count;
+        }
+    }
+    
+    // Check if we have too many low samples
+    if (!expected_count && self->low_sample_count > SKEW_HIGH_LIMIT)
+    {
+        return (-1) * self->low_sample_count;
+    }
+
+    if (self->low_sample_count == expected_count)
+    {
+        // We have enough high samples, return number of collected samples
+        return self->high_sample_count + self->low_sample_count; // total number of samples
+    }
+    return 0;
+}
+
+static int8_t rx_sampler_sync_collect_high(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
+{
+    if (signal_state)
+    {
+        self->high_sample_count += 1;
+    }
+    else
+    {
+        if (!expected_count)
+        {
+            // No expected sample count, check against defined low and high limit
+            if (self->high_sample_count >= SKEW_LOW_LIMIT && 
+                self->high_sample_count <= SKEW_HIGH_LIMIT)
+            {
+                // We have enough high samples, return number of collected samples
+                return self->high_sample_count;
+            }
+            else
+            {
+                // We won't allow any "extra" high samples
+                return (-1) * self->high_sample_count;
+            }
+        }
+        self->low_sample_count += 1;
+
+        // Check if we have too many low samples
+        if (self->low_sample_count > STATE_TOLERANCE)
+        {
+            return (-1) * self->low_sample_count;
+        }
+    }
+
+    if (self->high_sample_count == expected_count)
+    {
+            // We have enough high samples, return number of collected samples
+            return self->high_sample_count + self->low_sample_count; // total number of samples
+    }
+    
+    // Check if we have too many high samples
+    if (!expected_count && self->high_sample_count > SKEW_HIGH_LIMIT)
+    {
+        return (-1) * self->high_sample_count;
+    }
+    return 0;
 }
 
 void pico_synchronizer_start(RX_Synchronizer* self, RX_Device* rx_device)
@@ -94,7 +182,6 @@ void pico_synchronizer_init(Pico_Synchronizer* self)
     self->base.wait_for_sync = pico_synchronizer_start;
 }
 
-// OK
 void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state)
 {
     if (self->state_function)
@@ -103,39 +190,8 @@ void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state)
     }
 }
 
-// OK
-void pico_synchronizer_set_state(Pico_Synchronizer* self, Pico_Synchronizer_State state)
-{    
-    TRACE("Setting state to %d", state);
-    self->state = state;
-    switch (state)
-    {
-        case PICO_SYNCHRONIZER_STATE_WAIT_SYNC:
-            self->sync_sample_count = 0;
-            self->start_sync_timestamp = 0;
-            self->state_function = pico_synchronizer_state_wait_sync;
-            break;
-        case PICO_SYNCHRONIZER_STATE_START_SYNC:
-            pico_synchronizer_register_gpio_int();
-            self->processing_high = 0;
-            self->waiting_for_edge = 0;
-            self->state_function = pico_synchronizer_state_start_sync;
-            break;
-        case PICO_SYNCHRONIZER_STATE_SYNC:
-            self->processing_high = 0;
-            self->state_function = pico_synchronizer_state_sync;
-            self->processed_bit_count = 0;
-            break;
-        case PICO_SYNCHRONIZER_STATE_DONE:
-            self->state_function = NULL;
-            break;
-    }
-    self->high_sample_count = 0;
-    self->low_sample_count = 0;
-}
-
 // Wait for enough highs and then for the first low
-void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t signal_state)
+static void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t signal_state)
 {
     if (signal_state && self->high_sample_count < SKEW_LOW_LIMIT)   
     {
@@ -157,7 +213,7 @@ void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t signal_s
 }
 
 // Check if we have our first low and high bit pair
-void pico_synchronizer_state_start_sync(Pico_Synchronizer* self, uint8_t signal_state)
+static void pico_synchronizer_state_start_sync(Pico_Synchronizer* self, uint8_t signal_state)
 {
     int8_t res = 0;
     if (!self->processing_high)
@@ -200,7 +256,7 @@ void pico_synchronizer_state_start_sync(Pico_Synchronizer* self, uint8_t signal_
     }
 }
 
-void pico_synchronizer_state_sync(Pico_Synchronizer* self, uint8_t signal_state)
+static void pico_synchronizer_state_sync(Pico_Synchronizer* self, uint8_t signal_state)
 {
     if (self->waiting_for_edge)
     {
@@ -248,96 +304,33 @@ void pico_synchronizer_state_sync(Pico_Synchronizer* self, uint8_t signal_state)
     }
 }
 
-int8_t rx_sampler_sync_collect_high(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
-{
-    if (signal_state)
-    {
-        self->high_sample_count += 1;
-    }
-    else
-    {
-        if (!expected_count)
-        {
-            // No expected sample count, check against defined low and high limit
-            if (self->high_sample_count >= SKEW_LOW_LIMIT && 
-                self->high_sample_count <= SKEW_HIGH_LIMIT)
-            {
-                // We have enough high samples, return number of collected samples
-                return self->high_sample_count;
-            }
-            else
-            {
-                // We won't allow any "extra" high samples
-                return (-1) * self->high_sample_count;
-            }
-        }
-        self->low_sample_count += 1;
-
-        // Check if we have too many low samples
-        if (self->low_sample_count > STATE_TOLERANCE)
-        {
-            return (-1) * self->low_sample_count;
-        }
-    }
-
-    if (self->high_sample_count == expected_count)
-    {
-            // We have enough high samples, return number of collected samples
-            return self->high_sample_count + self->low_sample_count; // total number of samples
-    }
-    
-    // Check if we have too many high samples
-    if (!expected_count && self->high_sample_count > SKEW_HIGH_LIMIT)
-    {
-        return (-1) * self->high_sample_count;
-    }
-    return 0;
-}
-
-int8_t rx_sampler_sync_collect_low(Pico_Synchronizer* self, uint8_t signal_state, uint8_t expected_count)
+static void pico_synchronizer_set_state(Pico_Synchronizer* self, Pico_Synchronizer_State state)
 {    
-    if (!signal_state)
+    TRACE("Setting state to %d", state);
+    self->state = state;
+    switch (state)
     {
-        self->low_sample_count += 1;
+        case PICO_SYNCHRONIZER_STATE_WAIT_SYNC:
+            self->sync_sample_count = 0;
+            self->start_sync_timestamp = 0;
+            self->state_function = pico_synchronizer_state_wait_sync;
+            break;
+        case PICO_SYNCHRONIZER_STATE_START_SYNC:
+            pico_synchronizer_register_gpio_int();
+            self->processing_high = 0;
+            self->waiting_for_edge = 0;
+            self->state_function = pico_synchronizer_state_start_sync;
+            break;
+        case PICO_SYNCHRONIZER_STATE_SYNC:
+            self->processing_high = 0;
+            self->state_function = pico_synchronizer_state_sync;
+            self->processed_bit_count = 0;
+            break;
+        case PICO_SYNCHRONIZER_STATE_DONE:
+            self->state_function = NULL;
+            break;
     }
-    else
-    {
-        if (!expected_count)
-        {
-            // No expected sample count, check against defined low and high limit
-            if (self->low_sample_count >= SKEW_LOW_LIMIT && 
-                self->low_sample_count <= SKEW_HIGH_LIMIT)
-            {
-                // We have enough low samples, return number of collected samples
-                return self->low_sample_count;
-            }
-            else
-            {
-                // We won't allow any "extra" high samples
-                return (-1) * self->low_sample_count;
-            }
-        }
-
-        self->high_sample_count += 1;
-
-        // Check if we have too many high samples
-        if (self->high_sample_count > STATE_TOLERANCE)
-        {
-            return (-1) * self->high_sample_count;
-        }
-    }
-    
-    // Check if we have too many low samples
-    if (!expected_count && self->low_sample_count > SKEW_HIGH_LIMIT)
-    {
-        return (-1) * self->low_sample_count;
-    }
-
-    if (self->low_sample_count == expected_count)
-    {
-        // We have enough high samples, return number of collected samples
-        return self->high_sample_count + self->low_sample_count; // total number of samples
-    }
-    return 0;
+    self->high_sample_count = 0;
+    self->low_sample_count = 0;
 }
 
