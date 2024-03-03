@@ -45,10 +45,10 @@ void __not_in_flash_func(gpio_int_handler)()
                 (float) (current_timestamp - global_instance->start_sync_timestamp) / SYNC_LENGTH;
             if (detected_transmission_rate >= LOW_ALLOWED_TX_RATE &&
                     detected_transmission_rate <= HIGH_ALLOWED_TX_RATE )
-            {   
-                cancel_repeating_timer(&(global_instance->timer));
-                rx_set_detected_transmission_rate(global_instance->rx_device, detected_transmission_rate, 0);  // we know the signal is low now. We could read this from gpio...
+            { 
+                cancel_repeating_timer((&global_instance->timer));
                 pico_synchronizer_set_state(global_instance, PICO_SYNCHRONIZER_STATE_DONE);
+                rx_set_detected_transmission_rate(global_instance->rx_device, detected_transmission_rate, 0);  // we know the signal is low now. We could read this from gpio...
             }
             else
             {
@@ -82,7 +82,7 @@ void pico_synchronizer_start(RX_Synchronizer* self, RX_Device* rx_device)
     Pico_Synchronizer * const sync = (Pico_Synchronizer*) self;
     sync->rx_device = rx_device;
     add_repeating_timer_us(SYNC_SAMPLING_RATE * -1, pico_synchronizer_repeating_timer_callback, sync, &(sync->timer));
-    //pico_synchronizer_register_gpio_int();
+    pico_synchronizer_set_state(sync, PICO_SYNCHRONIZER_STATE_WAIT_SYNC);
 }
 
 void pico_synchronizer_init(Pico_Synchronizer* self)
@@ -90,7 +90,7 @@ void pico_synchronizer_init(Pico_Synchronizer* self)
     memset(self, 0, sizeof(Pico_Synchronizer));
     global_instance = self;
     self->state = PICO_SYNCHRONIZER_STATE_WAIT_SYNC;
-    self->state_function = pico_synchronizer_state_wait_sync;
+    self->state_function = NULL;
     self->base.wait_for_sync = pico_synchronizer_start;
 }
 

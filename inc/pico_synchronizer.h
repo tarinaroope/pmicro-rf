@@ -2,15 +2,14 @@
 #define RFSYNCHRONIZER_H
 
 #include "rf_device.h"
-#include <stdint.h>
 
 // Dynamic sync configuration values:
 #define HIGH_ALLOWED_TX_RATE         1500      // us
 #define LOW_ALLOWED_TX_RATE          600       // us
-#define SYNC_SAMPLING_RATE           100        // us
-#define SKEW_LOW_LIMIT               8        // Allow fastest transmission rate 600us / bit with 60us sampling rate
-#define SKEW_HIGH_LIMIT              15        // Allow lowest transmission rate 1500us / bit with 60us sampling rate
-#define STATE_TOLERANCE              2        // Number of wrong samples in every sync bit that can be tolerated
+#define SYNC_SAMPLING_RATE           50        // us
+#define SKEW_LOW_LIMIT               12        // Allow fastest transmission rate 600us / bit with 60us sampling rate
+#define SKEW_HIGH_LIMIT              30        // Allow lowest transmission rate 1500us / bit with 60us sampling rate
+#define STATE_TOLERANCE              3        // Number of wrong samples in every sync bit that can be tolerated
 #define SYNC_LENGTH                  4        // Number of sync bits used for clock synchronization. Must be even number!
 
 typedef enum

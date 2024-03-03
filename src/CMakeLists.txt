@@ -1,6 +1,7 @@
     
     add_library (   pmicro-rf
-                    rf_device.c
+                    rx_device.c
+                    tx_device.c
 	                rf_pico.c
 		            pico_synchronizer.c
                 )

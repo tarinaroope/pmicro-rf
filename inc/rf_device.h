@@ -22,16 +22,9 @@
 #define SAMPLING_COUNT              10     // number of samples per bit (even). Speed = sampling_frequency / sampling_count
 #define SAMPLING_TOLERANCE          1      // number of wrong samples that can be tolerated
 
-/**
- * @brief Structure representing a received bit in a radio frequency device.
- */
-typedef struct 
-{
-    uint8_t low_sample_count; /**< Number of samples with a value of 0. */
-    uint8_t high_sample_count; /**< Number of samples with a value of 1. */
-    uint8_t sync_index;     /**< Current sync index. */
-    uint8_t latest_bit;     /**< Value of the latest received bit. */
-} RX_BIT;
+typedef struct RX_Synchronizer RX_Synchronizer;
+typedef struct RX_Device RX_Device;
+typedef struct TX_Device TX_Device;
 
 /**
  * @brief Structure representing a RF message.
@@ -47,41 +40,50 @@ typedef struct
 } RF_Message;
 
 /**
- * @brief Enumeration representing the different states of the RX (receive) process.
+ * @brief Enumeration representing the different states of the transmission process.
  */
 typedef enum
+{
+    TX_INITIAL = 0,
+    TX_WAKEUP,          /**< Wakeup state */
+    TX_SYNC,                /**< Sync state */
+    TX_SEND_START,          /**< Send start state */
+    TX_SEND_LENGTH,         /**< Send length state */
+    TX_SEND_PAYLOAD,        /**< Send payload state */
+    TX_SEND_CRC             /**< Send CRC state */
+}TX_State;
+
+/**
+ * @brief Structure representing a received bit in a radio frequency device.
+ */
+typedef struct 
+{
+    uint8_t low_sample_count; /**< Number of samples with a value of 0. */
+    uint8_t high_sample_count; /**< Number of samples with a value of 1. */
+    uint8_t sync_index;     /**< Current sync index. */
+    uint8_t latest_bit;     /**< Value of the latest received bit. */
+} RX_Bit;
+
+/**
+ * @brief Enumeration representing the different states of the RX (receive) process.
+ */
+typedef enum 
 {
     RX_SYNC = 0,            /**< Syncronization state */
     RX_WAIT_START,          /**< Waiting for start sequence state */
     RX_READ_LENGTH,         /**< Reading payload length state */
     RX_READ_PAYLOAD,        /**< Reading payload state */
     RX_READ_CRC             /**< Reading CRC (cyclic redundancy check) state */
-} RX_State;
-
-/**
- * @brief Enumeration representing the different states of the transmission process.
- */
-typedef enum
-{
-    TX_WAKEUP = 0,          /**< Wakeup state */
-    TX_SYNC,                /**< Sync state */
-    TX_SEND_START,          /**< Send start state */
-    TX_SEND_LENGTH,         /**< Send length state */
-    TX_SEND_PAYLOAD,        /**< Send payload state */
-    TX_SEND_CRC             /**< Send CRC state */
-} TX_State;
-
-typedef struct RX_Synchronizer RX_Synchronizer;
+}RX_State;
 
 /**
  * @struct RX_Device
  * @brief Structure representing the receiver (RX) device.
  */
-typedef struct RX_Device RX_Device;
 struct RX_Device
 {
     RX_State    state; /**< Current state of the receiver device. */
-    RX_BIT      rx_bit; /**< Current bit being received. */
+    RX_Bit      rx_bit; /**< Current bit being received. */
     RF_Message  message; /**< Message received. */
 
     uint8_t     signal_state; /**< Current state of the received signal. */
@@ -109,7 +111,6 @@ struct RX_Synchronizer
  * @struct TX_Device
  * @brief Structure representing the transmitter (TX) device.
  */
-typedef struct TX_Device TX_Device;
 struct TX_Device
 {
     TX_State    state; /**< Current state of the transmitter device. */
@@ -125,21 +126,17 @@ struct TX_Device
     void* user_data; /**< User-defined data. */
 };
 
-void tx_init(   TX_Device* self, 
-                void (*set_signal), 
-                void (*set_onetime_trigger_time), 
-                void (*set_recurring_trigger_time), 
-                void (*cancel_trigger), 
-                void* user_data);
+// Transmitter functions
 
+void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_time), 
+                void (*set_recurring_trigger_time), void (*cancel_trigger), void* user_data);
+int8_t tx_send_message(TX_Device* self, RF_Message message);
 void tx_callback(TX_Device* self);
 
-void rx_init(   RX_Device* self,
-                void* result_callback,
-                void* set_recurring_trigger_time, 
-                void* cancel_trigger,
-                void* user_data);
+// Receiver functions
 
+void rx_init( RX_Device* self, void* result_callback, void* set_recurring_trigger_time, 
+                void* cancel_trigger, void* user_data);
 void rx_signal_callback(RX_Device* self, uint8_t signal_status);
 void rx_set_external_synchronizer(RX_Device* self, RX_Synchronizer* synchronizer);
 void rx_set_detected_transmission_rate(RX_Device* self, float rate, uint8_t signal_status);

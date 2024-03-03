@@ -5,8 +5,7 @@
 #ifndef DEBUG_LOGGING_H
 #define DEBUG_LOGGING_H
 
-#pragma once
-#define ENABLE_LOGGING
+//#define ENABLE_LOGGING
 
 #ifdef ENABLE_LOGGING
 #include <stdio.h>
