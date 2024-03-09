@@ -22,7 +22,6 @@ static void __not_in_flash_func(gpio_int_handler)()
 {
     if (global_instance->waiting_for_edge)
     {
-        //global_instance->wrongcount = 0;
         // This is the starting edge
         uint64_t const current_timestamp = to_us_since_boot(get_absolute_time()); 
         if (!global_instance->start_sync_timestamp)
@@ -63,7 +62,6 @@ static void __not_in_flash_func(pico_synchronizer_register_gpio_int)()
         irq_set_exclusive_handler(IO_IRQ_BANK0, gpio_int_handler);
         irq_set_enabled(IO_IRQ_BANK0, true);
     }
-    //global_instance->wrongcount = 0;
 }
 
 static bool pico_synchronizer_repeating_timer_callback(struct repeating_timer *t)
@@ -260,17 +258,7 @@ static void pico_synchronizer_state_sync(Pico_Synchronizer* self, uint8_t signal
 {
     if (self->waiting_for_edge)
     {
-        /*
-        if (!self->wrongcount)
-        {
-            self->wrongcount++;
-           // return;
-        }
-        */
-        // Timer triggered while waiting for edge... It's kind of a problem. Assume error in signal.
-        self->waiting_for_edge = 0;
-        TRACE("Timer triggered before signal edge!");
-        pico_synchronizer_set_state(self, PICO_SYNCHRONIZER_STATE_WAIT_SYNC);
+        // Should not get here, but it might be ok also. So let's not do anything, but just return back...
         return;
     }
     int8_t res = 0;

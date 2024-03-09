@@ -30,6 +30,7 @@ static void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger)
 
   if (!self->timer_initialized)
   {
+    cli();
     TCCR1 = 0; // Stop timer
     TCNT1 = 0; // Zero timer
     GTCCR = _BV(PSR1); // Reset prescaler
@@ -39,6 +40,7 @@ static void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger)
   
     // Start timer in CTC mode; prescaler = 4; 
     TCCR1 = _BV(CTC1) | _BV(CS11) | _BV(CS10); 
+    sei();
     self->timer_initialized = true;
   }
 }
@@ -86,13 +88,12 @@ static void arduino_tx_cancel_trigger(void* user_data)
 void arduino_tx_send_message(arduino_transmitter* self, RF_Message message)
 {
   self->tx_device.message = message;
-  tx_callback(&(self->tx_device));
+  tx_send_message(&(self->tx_device), message);
 }
 
 void arduino_tx_init(arduino_transmitter* self, uint8_t pin)
 {
   DDRB |= (1 << TX_PIN);			//replaces pinMode(TX_PIN, OUTPUT);
-
   tx_init(&(self->tx_device), arduino_tx_set_signal, arduino_tx_set_onetime_trigger_time, 
           arduino_tx_set_recurring_trigger_time, arduino_tx_cancel_trigger, self);
 }

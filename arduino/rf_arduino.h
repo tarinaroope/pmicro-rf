@@ -10,7 +10,6 @@
 #define RF_ARDUINO_H
 
 #define TX_PIN PB1
-#define TIMER_INTERRUPT_COUNT 10
 
 extern "C"
 {
@@ -38,15 +37,6 @@ arduino_transmitter* get_global_transmitter();
  * @param pin The pin number to be used for transmission.
  */
 void arduino_tx_init(arduino_transmitter* self, uint8_t pin);
-
-/**
- * @brief Sets the signal for the Arduino transmitter.
- * 
- * This function sets the signal (high or low) for the Arduino transmitter.
- * 
- * @param is_high Flag indicating whether the signal should be set to high (true) or low (false).
- * @param user_data Pointer to user-defined data.
- */
 
 /**
  * @brief Sends a message using the Arduino transmitter.

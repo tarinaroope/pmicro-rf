@@ -37,8 +37,6 @@ struct Pico_Synchronizer
 
     Pico_Synchronizer_State state;
     repeating_timer_t timer;
-    //uint8_t wrongcount;
-
     void (*state_function)(Pico_Synchronizer* /*self*/, uint8_t /*signal_state*/);
 };
 
