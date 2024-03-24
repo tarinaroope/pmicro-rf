@@ -4,6 +4,12 @@
 
 arduino_transmitter g_transmitter;
 
+void transmit_ready_callback(void* user_data)
+{
+  arduino_transmitter* tx = (arduino_transmitter*) user_data;
+  tx->transmitting = false; 
+}
+
 ISR (TIMER1_COMPA_vect)      //Interrupt vector for Timer1
 { 
   // Increment count only in case of recurring timer or if one-shot timer has not been triggered
@@ -39,7 +45,8 @@ static void setup_timer(arduino_transmitter* self, uint64_t time_to_trigger)
     TIMSK = _BV(OCIE1A); // Interrupt on compare match with OCR1A
   
     // Start timer in CTC mode; prescaler = 4; 
-    TCCR1 = _BV(CTC1) | _BV(CS11) | _BV(CS10); 
+    //TCCR1 = _BV(CTC1) | _BV(CS11) | _BV(CS10); 
+    TCCR1 = _BV(CTC1) | _BV(CS12) | _BV(CS10); 
     sei();
     self->timer_initialized = true;
   }
@@ -80,6 +87,8 @@ static void arduino_tx_set_recurring_trigger_time(uint64_t time_to_trigger, void
 static void arduino_tx_cancel_trigger(void* user_data)
 {
   TCCR1 = 0;
+  TIMSK = 0;
+  TIFR = 0;
   arduino_transmitter* tx = (arduino_transmitter*) user_data;
   tx->interrupt_count = 0;
   tx->timer_initialized = false;
@@ -89,12 +98,12 @@ void arduino_tx_send_message(arduino_transmitter* self, RF_Message message)
 {
   self->tx_device.message = message;
   tx_send_message(&(self->tx_device), message);
+  self->transmitting = true;
 }
 
 void arduino_tx_init(arduino_transmitter* self, uint8_t pin)
 {
   DDRB |= (1 << TX_PIN);			//replaces pinMode(TX_PIN, OUTPUT);
   tx_init(&(self->tx_device), arduino_tx_set_signal, arduino_tx_set_onetime_trigger_time, 
-          arduino_tx_set_recurring_trigger_time, arduino_tx_cancel_trigger, self);
+          arduino_tx_set_recurring_trigger_time, arduino_tx_cancel_trigger, transmit_ready_callback, self);
 }
-

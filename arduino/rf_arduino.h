@@ -23,7 +23,8 @@ typedef struct
     uint8_t target_interrupt_count; 
     uint16_t interrupt_count;    
     bool one_shot_timer_triggered; 
-    bool timer_initialized;       
+    bool timer_initialized; 
+    bool transmitting;     
 } arduino_transmitter;
 
 arduino_transmitter* get_global_transmitter();

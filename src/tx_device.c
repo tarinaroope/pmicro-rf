@@ -10,12 +10,16 @@
 #include <string.h>
 #include "debug_logging.h"
 #include "rf_device.h"
+#include <arduino.h>
 
 static void tx_set_state(TX_Device* self, TX_State state);
 
 void tx_callback(TX_Device* self)
 {
-    self->state_function(self);
+    if (self->state_function)
+    {
+        self->state_function(self);
+    }
 }
 
 static void tx_send_bit(TX_Device* self, uint64_t buffer, uint8_t bit_index)
@@ -31,20 +35,19 @@ static void tx_send_bit(TX_Device* self, uint64_t buffer, uint8_t bit_index)
     }
 }
 
-void tx_init(   TX_Device* self,
-                void (*set_signal),
-                void (*set_onetime_trigger_time),
-                void (*set_recurring_trigger_time),
-                void (*cancel_trigger),
-                void* user_data)
+void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_time), 
+                void (*set_recurring_trigger_time), void (*cancel_trigger), 
+                void (*tx_ready_callback), void* user_data)
 {
     memset(self, 0, sizeof(TX_Device));
+
 
     // Set functions
     self->set_signal = set_signal;
     self->set_onetime_trigger_time = set_onetime_trigger_time;
     self->set_recurring_trigger_time = set_recurring_trigger_time;
     self->cancel_trigger = cancel_trigger;
+    self->tx_ready = tx_ready_callback;
     self->user_data = user_data;
 
     // Start state
@@ -136,8 +139,10 @@ static void tx_state_process_send_crc(TX_Device* self)
     tx_send_bit(self, self->message.message_crc, self->step_index);
     if (self->step_index == 0)
     {
-        tx_set_state(self, TX_WAKEUP);
+        tx_set_state(self, TX_INITIAL);
         self->cancel_trigger(self->user_data);
+        self->tx_ready(self->user_data);   
+          
     }
 }
 
@@ -147,6 +152,9 @@ static void tx_set_state(TX_Device* self, TX_State state)
     self->state = state;
     switch (state)
     {
+        case TX_INITIAL:
+            self->state_function = NULL;
+            break;
         case TX_WAKEUP:
             self->state_function = tx_state_process_wakeup;
             self->step_index = 0;

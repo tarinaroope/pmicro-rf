@@ -99,6 +99,7 @@ struct TX_Device
     void (*set_onetime_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
     void (*cancel_trigger)(void* /*trigger_user_data*/); 
+    void (*tx_ready)(void* /*trigger_user_data*/);
     void* user_data; 
 };
 
@@ -115,7 +116,8 @@ struct TX_Device
  * @param user_data User-defined data pointer.
  */
 void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_time), 
-                void (*set_recurring_trigger_time), void (*cancel_trigger), void* user_data);
+                void (*set_recurring_trigger_time), void (*cancel_trigger), 
+                void (*tx_ready_callback), void* user_data);
 
 /**
  * @brief Sends a message using the TX device.
