@@ -20,7 +20,7 @@
 
 #define TX_FREQUENCY                1000   // us / bit
 #define SAMPLING_COUNT              10     // number of samples per bit (even). Speed = sampling_frequency / sampling_count
-#define SAMPLING_TOLERANCE          1      // number of wrong samples that can be tolerated
+#define SAMPLING_TOLERANCE          2      // number of wrong samples that can be tolerated
 
 typedef struct RX_Synchronizer RX_Synchronizer;
 typedef struct RX_Device RX_Device;
