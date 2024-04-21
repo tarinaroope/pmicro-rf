@@ -10,7 +10,6 @@
 #include <string.h>
 #include "debug_logging.h"
 #include "rf_device.h"
-#include <arduino.h>
 
 static void tx_set_state(TX_Device* self, TX_State state);
 
