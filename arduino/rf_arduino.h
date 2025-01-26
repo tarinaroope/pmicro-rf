@@ -24,7 +24,7 @@ typedef struct
     uint16_t interrupt_count;    
     bool one_shot_timer_triggered; 
     bool timer_initialized; 
-    bool transmitting;     
+    volatile bool transmitting;     
 } arduino_transmitter;
 
 arduino_transmitter* get_global_transmitter();

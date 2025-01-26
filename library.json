@@ -10,7 +10,7 @@
             "-I arduino",
             "-I inc"
         ],
-        "srcFilter": "+<*> -<test> -<**/*pico*>"
+        "srcFilter": "+<*> -<test> -<**/*pico*> -<**/*rx_*>"
     },
     "frameworks": "*",
     "platforms": "*"
