@@ -1,0 +1,17 @@
+{
+    "name": "pmicro-rf",
+    "description": "description",
+    "keywords":  "blaa",
+    "version": "0.0.1",
+    "build": {
+        "srcDir": ".",
+        "includeDir": ".",
+        "flags": [
+            "-I arduino",
+            "-I inc"
+        ],
+        "srcFilter": "+<*> -<test> -<**/*pico*>"
+    },
+    "frameworks": "*",
+    "platforms": "*"
+}
