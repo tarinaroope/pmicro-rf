@@ -35,7 +35,7 @@ void pico_init_transmitter(rf_pico_transmitter* self);
  * @param transmitter The RF Pico transmitter.
  * @param message The message to be sent.
  */
-void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message);
+void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message* message);
 
 /**
  * @brief Initializes the RF Pico receiver.

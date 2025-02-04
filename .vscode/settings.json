@@ -4,6 +4,13 @@
         "stdint.h": "c",
         "rf_pico.h": "c",
         "cyw43_arch.h": "c",
-        "debug_logging.h": "c"
+        "debug_logging.h": "c",
+        "compare": "cpp",
+        "cstdint": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "ranges": "cpp",
+        "span": "cpp"
     }
 }

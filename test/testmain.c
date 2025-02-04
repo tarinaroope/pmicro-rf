@@ -7,7 +7,7 @@ uint8_t times;
 uint64_t prev;
 bool got_message = false;
 
-void report_result(RF_Message message)
+void report_result(RF_Message* message)
 {
     uint64_t const current_timestamp = to_us_since_boot(get_absolute_time());
     times = (current_timestamp - prev) / 1000000ULL;
@@ -16,7 +16,7 @@ void report_result(RF_Message message)
     {
         // First message from burst
         prev = current_timestamp;
-        printf("Received message: %llu, %x, %d, stamp: %d\n", message.message, message.message_length, message.message_crc, times);
+        printf("Received message: %llu, %x, %d, stamp: %d\n", message->message, message->message_length, message->message_crc, times);
         got_message = true;
     }
     else if (got_message && times < 3)
@@ -28,7 +28,7 @@ void report_result(RF_Message message)
     {
         // First message from burst, but missed from previous burst
         prev = current_timestamp;
-        printf("Received message: %llu, %x, %d, stamp: %d\n", message.message, message.message_length, message.message_crc, times);
+        printf("Received message: %llu, %x, %d, stamp: %d\n", message->message, message->message_length, message->message_crc, times);
         got_message = true;
     }
 
@@ -55,7 +55,7 @@ int main (void)
     while (1)
     {
         sleep_ms(5000);
-        pico_tx_send_message(&trans, message);
+        pico_tx_send_message(&trans, &message);
 
     }
     */

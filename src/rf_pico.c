@@ -6,16 +6,6 @@
 #include "pico_synchronizer.h"
 #include "debug_logging.h"
 
-// Different LEDS for different boards
-#ifdef USING_PICO_W
-#include "pico/cyw43_arch.h"
-#define LED_PIN CYW43_WL_GPIO_LED_PIN
-#define LED_PIN_PUT cyw43_arch_gpio_put
-#else
-#define LED_PIN 25
-#define LED_PIN_PUT gpio_put
-#endif
-
 // Callback functions
 
 static void pico_tx_set_signal(uint8_t is_high, void* user_data)
@@ -100,18 +90,11 @@ void pico_init_transmitter(rf_pico_transmitter* self)
     gpio_init(GPIO_PIN);
     gpio_set_dir(GPIO_PIN, GPIO_OUT);
 
-#ifdef USING_PICO_W
-    cyw43_arch_init();
-#else
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-#endif
-
     tx_init(&(self->tx_device), pico_tx_set_signal, pico_tx_set_onetime_trigger_time, 
             pico_tx_set_recurring_trigger_time, pico_tx_cancel_trigger, pico_tx_ready_callback, self);
 }
 
-void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message)
+void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message* message)
 {
     tx_send_message(&(transmitter->tx_device), message);
 }
@@ -131,8 +114,7 @@ void pico_init_receiver(rf_pico_receiver* self, void* result_callback)
     
     Pico_Synchronizer* synchronizer = (Pico_Synchronizer*) malloc(sizeof(Pico_Synchronizer));
     pico_synchronizer_init(synchronizer);
-    rx_set_external_synchronizer(&(self->rx_device),&(synchronizer->base));
-    
+    rx_set_external_synchronizer(&(self->rx_device),&(synchronizer->base)); 
 }
 
 void pico_rx_stop_receiving(rf_pico_receiver* self)

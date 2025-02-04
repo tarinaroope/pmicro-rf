@@ -250,7 +250,7 @@ static void rx_state_process_read_crc(RX_Device* self)
     {
         // CRC received
         self->message.message_crc = self->buffer;
-        self->result_callback(self->message);
+        self->result_callback(&self->message);
         rx_return_to_sync(self);
     }
     else

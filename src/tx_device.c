@@ -53,7 +53,7 @@ void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_tim
     tx_set_state(self, TX_INITIAL);
 }
 
-int8_t tx_send_message(TX_Device* self, RF_Message message)
+int8_t tx_send_message(TX_Device* self, RF_Message* message)
 {
     if (self->state != TX_INITIAL)
     {
@@ -61,7 +61,7 @@ int8_t tx_send_message(TX_Device* self, RF_Message message)
     }
     else
     {
-        self->message = message;
+        self->message = *message;
         tx_set_state(self, TX_WAKEUP);
         tx_callback(self);
         return 0;

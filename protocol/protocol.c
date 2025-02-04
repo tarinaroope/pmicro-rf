@@ -1,4 +1,5 @@
 #include "protocol.h"
+#include <math.h>
 
 void add_temperature(float temperature, uint64_t *data)
 {

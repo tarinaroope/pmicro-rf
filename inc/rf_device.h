@@ -79,7 +79,7 @@ struct RX_Device
     RX_Synchronizer* ext_synchronizer;
 
     void (*state_function)(RX_Device* /*self*/); 
-    void (*result_callback) (RF_Message /*message*/); 
+    void (*result_callback) (RF_Message* /*message*/); 
     void (*set_recurring_trigger_time)(uint64_t /*time_to_trigger*/, void* /*trigger_user_data*/); 
     void (*cancel_trigger)(void* /*trigger_user_data*/); 
     void* user_data; 
@@ -128,7 +128,7 @@ void tx_init(TX_Device* self, void (*set_signal), void (*set_onetime_trigger_tim
  * @param message The message to be sent.
  * @return Returns 0 if the message is successfully sent, otherwise returns -1.
  */
-int8_t tx_send_message(TX_Device* self, RF_Message message);
+int8_t tx_send_message(TX_Device* self, RF_Message* message);
 
 /**
  * @brief Callback function for the TX device.
