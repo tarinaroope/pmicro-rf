@@ -54,7 +54,8 @@ typedef struct
 
 typedef enum 
 {
-    RX_SYNC = 0,            
+    RX_SYNC = 0,
+    RX_WAIT_DELAY,       
     RX_WAIT_START,          
     RX_READ_LENGTH,         
     RX_READ_PAYLOAD,        
@@ -74,6 +75,7 @@ struct RX_Device
     uint64_t    sync_pattern;
     uint64_t    sync_pattern_mask; 
     
+    uint16_t sync_rate;
     RX_Synchronizer* ext_synchronizer;
 
     void (*state_function)(RX_Device* /*self*/); 

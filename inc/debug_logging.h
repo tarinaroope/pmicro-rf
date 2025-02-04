@@ -27,20 +27,20 @@
     } while (0)
 
 #define INITLOG(max_log_size) log_initlog(max_log_size);
-#define LOGENTRY(signal, customer) log_logentry(signal, customer);
+#define LOGENTRY(signal, custom) log_logentry(signal, custom);
 #define PRINTLOG log_printlog();
 
 typedef struct Logging_data
 {
     uint64_t    timestamp;
     int8_t      signal;
-    uint8_t     custom;
+    uint16_t     custom;
 }Logging_data;
 
 static uint16_t logindex;
 static Logging_data* logger_data;
 
-static void log_logentry(int8_t signal, uint8_t custom)
+static void log_logentry(int8_t signal, uint16_t custom)
 {
     logger_data[logindex].timestamp = to_us_since_boot(get_absolute_time());
     logger_data[logindex].signal = signal;
@@ -50,20 +50,27 @@ static void log_logentry(int8_t signal, uint8_t custom)
 
 static void log_printlog()
 {
-    for (int i = 0; i < logindex; i++)
+    int i;
+    for (i = 0; i < logindex; i++)
     {
         printf("t:%llu,s:%d,c:%u ",logger_data[i].timestamp,logger_data[i].signal,logger_data[i].custom);
         if (i != 0 && i % 5 == 0)
         {
             printf("\n");
         }
+
     }
+    if (i != 0 && i % 5 != 0)
+    {
+        printf("\n");
+    }
+
 }
 
 static void log_initlog(uint16_t max_log_size)
 {
     logger_data = (Logging_data*) malloc (sizeof(Logging_data)* max_log_size);
-    logger_data = 0;
+    logindex = 0;
 }
 
 #else

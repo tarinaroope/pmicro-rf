@@ -88,6 +88,11 @@ static void pico_rx_set_recurring_trigger_time(uint64_t time_to_trigger, void* u
     add_repeating_timer_us(time_to_trigger * -1, pico_rx_repeating_timer_callback, user_data, timer);
 }
 
+static void pico_tx_ready_callback(void* user_data)
+{
+  // TODO
+}
+
 // Callback functions end
 
 void pico_init_transmitter(rf_pico_transmitter* self)
@@ -103,7 +108,7 @@ void pico_init_transmitter(rf_pico_transmitter* self)
 #endif
 
     tx_init(&(self->tx_device), pico_tx_set_signal, pico_tx_set_onetime_trigger_time, 
-            pico_tx_set_recurring_trigger_time, pico_tx_cancel_trigger, self);
+            pico_tx_set_recurring_trigger_time, pico_tx_cancel_trigger, pico_tx_ready_callback, self);
 }
 
 void pico_tx_send_message(rf_pico_transmitter* transmitter, RF_Message message)
@@ -127,6 +132,7 @@ void pico_init_receiver(rf_pico_receiver* self, void* result_callback)
     Pico_Synchronizer* synchronizer = (Pico_Synchronizer*) malloc(sizeof(Pico_Synchronizer));
     pico_synchronizer_init(synchronizer);
     rx_set_external_synchronizer(&(self->rx_device),&(synchronizer->base));
+    
 }
 
 void pico_rx_stop_receiving(rf_pico_receiver* self)

@@ -12,6 +12,8 @@
 #include "debug_logging.h"
 #include "rf_device.h"
 
+#include <stdio.h>
+
 static void rx_set_state(RX_Device* self, RX_State state);
 
 void rx_init(   RX_Device* self,
@@ -58,10 +60,11 @@ void rx_set_external_synchronizer(RX_Device* self, RX_Synchronizer* synchronizer
 void rx_set_detected_transmission_rate(RX_Device* self, float rate, uint8_t signal_status)
 {
     // Adjust the recurring trigger time based on the detected transmission rate
+   
     uint16_t sync_rate = round((float) rate / SAMPLING_COUNT);
     self->set_recurring_trigger_time(sync_rate, self->user_data);
-
     rx_set_state(self, RX_WAIT_START);
+    
     if (signal_status)
     {
         self->rx_bit.high_sample_count = 1;
@@ -75,7 +78,10 @@ void rx_set_detected_transmission_rate(RX_Device* self, float rate, uint8_t sign
 
 static inline void rx_return_to_sync(RX_Device* self)
 {
-    self->cancel_trigger(self->user_data);
+    if (self->ext_synchronizer)
+    {
+        self->cancel_trigger(self->user_data);
+    }
     rx_set_state(self, RX_SYNC);
 }
 
@@ -245,11 +251,6 @@ static void rx_state_process_read_crc(RX_Device* self)
         // CRC received
         self->message.message_crc = self->buffer;
         self->result_callback(self->message);
-        //Go back to sync state
-        if (self->ext_synchronizer)
-        {
-            self->cancel_trigger(self->user_data);
-        }
         rx_return_to_sync(self);
     }
     else
@@ -293,7 +294,7 @@ static void rx_set_state(RX_Device* self, RX_State state)
                 self->state_function = rx_state_process_sync;
             }
             break;
-        case RX_WAIT_START:
+        case RX_WAIT_START:                    
             self->state_function = rx_state_process_wait_start;
             break;
         case RX_READ_LENGTH:

@@ -7,6 +7,8 @@
 #include "rf_pico.h"
 #include "debug_logging.h"
 
+#include "stdio.h"
+
 static void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state);
 static void pico_synchronizer_set_state(Pico_Synchronizer* self, Pico_Synchronizer_State state);
 
@@ -32,35 +34,33 @@ static void __not_in_flash_func(gpio_int_handler)()
         }
         else
         {
-            // This is the second / ending edge. Calc the total bit time
-            global_instance->waiting_for_edge = 0;
             cancel_gpio_interrupt();  
+            // This is the second / ending edge. Calc the total bit time
+            global_instance->waiting_for_edge = 0;        
             float const detected_transmission_rate = 
                 (float) (current_timestamp - global_instance->start_sync_timestamp) / SYNC_LENGTH;
+
             if (detected_transmission_rate >= LOW_ALLOWED_TX_RATE &&
                     detected_transmission_rate <= HIGH_ALLOWED_TX_RATE )
             { 
                 cancel_repeating_timer((&global_instance->timer));
                 pico_synchronizer_set_state(global_instance, PICO_SYNCHRONIZER_STATE_DONE);
-                rx_set_detected_transmission_rate(global_instance->rx_device, detected_transmission_rate, 0);  // we know the signal is low now. We could read this from gpio...
+                rx_set_detected_transmission_rate(global_instance->rx_device, detected_transmission_rate, 0); 
             }
             else
             {
-                TRACE("Detected rate %.1f too high or low!", detected_transmission_rate);
+                TRACE("Detected rate %.1f too high or low!", detected_transmission_rate);                
                 pico_synchronizer_set_state(global_instance, PICO_SYNCHRONIZER_STATE_WAIT_SYNC);
             }
         }
     }
-    gpio_acknowledge_irq(GPIO_PIN, GPIO_IRQ_EDGE_FALL);
 }
 
 static void __not_in_flash_func(pico_synchronizer_register_gpio_int)()
 {   
     if (!irq_is_enabled(IO_IRQ_BANK0))
     {
-        gpio_set_irq_enabled(GPIO_PIN, GPIO_IRQ_EDGE_FALL, true);
-        irq_set_exclusive_handler(IO_IRQ_BANK0, gpio_int_handler);
-        irq_set_enabled(IO_IRQ_BANK0, true);
+       irq_set_enabled(IO_IRQ_BANK0, true);
     }
 }
 
@@ -81,8 +81,8 @@ static int8_t rx_sampler_sync_collect_low(Pico_Synchronizer* self, uint8_t signa
         if (!expected_count)
         {
             // No expected sample count, check against defined low and high limit
-            if (self->low_sample_count >= SKEW_LOW_LIMIT && 
-                self->low_sample_count <= SKEW_HIGH_LIMIT)
+            if (self->low_sample_count >= MINHIGHTOSTART && 
+                self->low_sample_count <= MAXHIGHTOSTART)
             {
                 // We have enough low samples, return number of collected samples
                 return self->low_sample_count;
@@ -104,7 +104,7 @@ static int8_t rx_sampler_sync_collect_low(Pico_Synchronizer* self, uint8_t signa
     }
     
     // Check if we have too many low samples
-    if (!expected_count && self->low_sample_count > SKEW_HIGH_LIMIT)
+    if (!expected_count && self->low_sample_count > MAXHIGHTOSTART)
     {
         return (-1) * self->low_sample_count;
     }
@@ -128,8 +128,8 @@ static int8_t rx_sampler_sync_collect_high(Pico_Synchronizer* self, uint8_t sign
         if (!expected_count)
         {
             // No expected sample count, check against defined low and high limit
-            if (self->high_sample_count >= SKEW_LOW_LIMIT && 
-                self->high_sample_count <= SKEW_HIGH_LIMIT)
+            if (self->high_sample_count >= MINHIGHTOSTART && 
+                self->high_sample_count <= MAXHIGHTOSTART)
             {
                 // We have enough high samples, return number of collected samples
                 return self->high_sample_count;
@@ -156,7 +156,7 @@ static int8_t rx_sampler_sync_collect_high(Pico_Synchronizer* self, uint8_t sign
     }
     
     // Check if we have too many high samples
-    if (!expected_count && self->high_sample_count > SKEW_HIGH_LIMIT)
+    if (!expected_count && self->high_sample_count > MAXHIGHTOSTART)
     {
         return (-1) * self->high_sample_count;
     }
@@ -168,6 +168,10 @@ void pico_synchronizer_start(RX_Synchronizer* self, RX_Device* rx_device)
     Pico_Synchronizer * const sync = (Pico_Synchronizer*) self;
     sync->rx_device = rx_device;
     add_repeating_timer_us(SYNC_SAMPLING_RATE * -1, pico_synchronizer_repeating_timer_callback, sync, &(sync->timer));
+
+    gpio_set_irq_callback(gpio_int_handler);
+    gpio_set_irq_enabled(GPIO_PIN, GPIO_IRQ_EDGE_FALL, true);
+
     pico_synchronizer_set_state(sync, PICO_SYNCHRONIZER_STATE_WAIT_SYNC);
 }
 
@@ -178,6 +182,7 @@ void pico_synchronizer_init(Pico_Synchronizer* self)
     self->state = PICO_SYNCHRONIZER_STATE_WAIT_SYNC;
     self->state_function = NULL;
     self->base.wait_for_sync = pico_synchronizer_start;
+
 }
 
 void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state)
@@ -191,11 +196,11 @@ void pico_synchronizer_process(Pico_Synchronizer* self, uint8_t signal_state)
 // Wait for enough highs and then for the first low
 static void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t signal_state)
 {
-    if (signal_state && self->high_sample_count < SKEW_LOW_LIMIT)   
+    if (signal_state && self->high_sample_count < MINHIGHTOSTART)   
     {
         self->high_sample_count += 1;
     }
-    else if (!signal_state && self->high_sample_count == SKEW_LOW_LIMIT)  
+    else if (!signal_state && self->high_sample_count == MINHIGHTOSTART)  
     {
         // We have enough high samples and we got first low, count the first low
         // and go to next state to check if we really have sync start
@@ -214,6 +219,7 @@ static void pico_synchronizer_state_wait_sync(Pico_Synchronizer* self, uint8_t s
 static void pico_synchronizer_state_start_sync(Pico_Synchronizer* self, uint8_t signal_state)
 {
     int8_t res = 0;
+
     if (!self->processing_high)
     {
         res = rx_sampler_sync_collect_low(self, signal_state, 0); // 0 means no expected sample count at this point yet

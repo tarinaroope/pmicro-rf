@@ -4,13 +4,16 @@
 #include "rf_device.h"
 
 // Dynamic sync configuration values:
-#define HIGH_ALLOWED_TX_RATE         8000      // us
-#define LOW_ALLOWED_TX_RATE          1000       // us
+#define HIGH_ALLOWED_TX_RATE         10000      // us
+#define LOW_ALLOWED_TX_RATE          950       // us
 #define SYNC_SAMPLING_RATE           50       // us 50
-#define SKEW_LOW_LIMIT               60        
-#define SKEW_HIGH_LIMIT              100       
-#define STATE_TOLERANCE              12        // Number of wrong samples in every sync bit that can be tolerated
-#define SYNC_LENGTH                  4        // Number of sync bits used for clock synchronization. Must be even number!
+//#define SKEW_LOW_LIMIT               16//60        
+//#define SKEW_HIGH_LIMIT              24//100       
+#define STATE_TOLERANCE              2//12        // Number of wrong samples in every sync bit that can be tolerated
+#define SYNC_LENGTH                  8       // Number of sync bits used for clock synchronization. Must be even number!
+
+#define MINHIGHTOSTART               18  // min tx time per bit / SYNC_SAMPLING_RATE
+#define MAXHIGHTOSTART               200 // max tx time per bit / SYNC_SAMPLING_RATE
 
 typedef enum
 {
@@ -35,7 +38,7 @@ struct Pico_Synchronizer
     uint8_t waiting_for_edge;
     uint64_t start_sync_timestamp;     
 
-    Pico_Synchronizer_State state;
+    volatile Pico_Synchronizer_State state;
     repeating_timer_t timer;
     void (*state_function)(Pico_Synchronizer* /*self*/, uint8_t /*signal_state*/);
 };
