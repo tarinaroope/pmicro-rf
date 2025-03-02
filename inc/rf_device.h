@@ -199,4 +199,17 @@ void rx_start_receiving(RX_Device* self);
  */
 void rx_stop_receiving(RX_Device* self);
 
+/**
+ * @brief Computes the CRC-8 checksum for the given data.
+ *
+ * This function calculates the 8-bit Cyclic Redundancy Check (CRC) for the 
+ * provided data array using the specified initial CRC value.
+ *
+ * @param data Pointer to the data array for which the CRC is to be computed.
+ * @param length The length of the data array.
+ * @param initial_crc The initial CRC value to start the computation.
+ * @return The computed CRC-8 checksum.
+ */
+uint8_t rf_crc8(const uint8_t *data, size_t length, uint8_t initial_crc);
+
 #endif // RFDEVICE_H

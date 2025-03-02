@@ -22,6 +22,6 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-maybe-uninitialized)
 endif()
 
-add_subdirectory(src)
+add_subdirectory(rp2040)
 add_subdirectory(test)
 
