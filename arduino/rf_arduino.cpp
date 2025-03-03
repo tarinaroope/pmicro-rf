@@ -1,6 +1,6 @@
+#include <arduino.h>
 #include <avr/interrupt.h>
 #include "rf_arduino.h"
-#include <arduino.h>
 
 arduino_transmitter g_transmitter;
 
@@ -94,9 +94,8 @@ static void arduino_tx_cancel_trigger(void* user_data)
   tx->timer_initialized = false;
 } 
 
-void arduino_tx_send_message(arduino_transmitter* self, RF_Message message)
+void arduino_tx_send_message(arduino_transmitter* self, RF_Message* message)
 {
-  self->tx_device.message = message;
   tx_send_message(&(self->tx_device), message);
   self->transmitting = true;
 }

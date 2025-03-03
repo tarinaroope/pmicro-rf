@@ -221,7 +221,7 @@ uint8_t rf_crc8(const uint8_t *data, size_t length, uint8_t initial_crc);
  *
  * @param message Pointer to the RF_Message structure containing the message to which the CRC will be added.
  */
-void rf_add_crc8(RF_Message* message)
+void rf_add_crc8(RF_Message* message);
 
 /**
  * @brief Verifies the CRC8 checksum of an RF message.
@@ -234,7 +234,7 @@ void rf_add_crc8(RF_Message* message)
  * @return true if the CRC flag is not set or if the computed CRC matches the stored CRC,
  *         false otherwise.
  */
-bool rf_verify_crc8(RF_Message* message)
+uint8_t rf_verify_crc8(RF_Message* message);
 
 
 #endif // RFDEVICE_H

@@ -47,7 +47,7 @@ void arduino_tx_init(arduino_transmitter* self, uint8_t pin);
  * @param self Pointer to the arduino_transmitter structure.
  * @param message The message to be sent.
  */
-void arduino_tx_send_message(arduino_transmitter* self, RF_Message message);
+void arduino_tx_send_message(arduino_transmitter* self, RF_Message* message);
 
 
 #endif // RF_ARDUINO_H

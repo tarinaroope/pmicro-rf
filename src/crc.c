@@ -43,7 +43,7 @@ void rf_add_crc8(RF_Message* message)
     message->message_crc = ((uint16_t)crc_flag << 8) | crc;
 }
 
-bool rf_verify_crc8(RF_Message* message)
+uint8_t rf_verify_crc8(RF_Message* message)
 {
      // Extract the CRC flag (MSB) and actual CRC (LSB)
      uint8_t crc_flag = (message->message_crc >> 8) & 0xFF;
@@ -51,7 +51,7 @@ bool rf_verify_crc8(RF_Message* message)
  
      // If CRC flag is not set, CRC is not present
      if (crc_flag != 1) {
-         return true;
+         return 1;
      }
  
      uint8_t computed_crc = rf_crc8(&message->message, 8, 0);

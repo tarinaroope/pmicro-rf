@@ -8,7 +8,8 @@
         "includeDir": ".",
         "flags": [
             "-I arduino",
-            "-I inc"
+            "-I inc",
+            "-I protocol"
         ],
         "srcFilter": "+<*> -<test> -<rp2040> -<**/*rx_*>"
     },
