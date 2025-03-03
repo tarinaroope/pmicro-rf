@@ -212,4 +212,29 @@ void rx_stop_receiving(RX_Device* self);
  */
 uint8_t rf_crc8(const uint8_t *data, size_t length, uint8_t initial_crc);
 
+/**
+ * @brief Adds an 8-bit CRC to the RF message.
+ *
+ * This function calculates an 8-bit CRC for the given RF message and assigns it to the message's CRC field.
+ * The most significant bit (MSB) of the CRC field is set to indicate the presence of the CRC, and the actual
+ * CRC value is stored in the least significant byte (LSB).
+ *
+ * @param message Pointer to the RF_Message structure containing the message to which the CRC will be added.
+ */
+void rf_add_crc8(RF_Message* message)
+
+/**
+ * @brief Verifies the CRC8 checksum of an RF message.
+ *
+ * This function checks the CRC8 checksum of the given RF message to ensure data integrity.
+ * It extracts the CRC flag and the stored CRC from the message, computes the CRC of the 
+ * message content, and compares it with the stored CRC.
+ *
+ * @param message Pointer to the RF_Message structure containing the message and its CRC.
+ * @return true if the CRC flag is not set or if the computed CRC matches the stored CRC,
+ *         false otherwise.
+ */
+bool rf_verify_crc8(RF_Message* message)
+
+
 #endif // RFDEVICE_H

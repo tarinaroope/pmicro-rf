@@ -33,6 +33,31 @@ uint8_t rf_crc8(const uint8_t *data, size_t length, uint8_t initial_crc)
     }
     return crc;
 }
+
+void rf_add_crc8(RF_Message* message)
+{
+    uint8_t crc = rf_crc8(&message->message, 8, 0);
+    uint8_t crc_flag = 1;
+
+    // Assign crc_flag to msb to indicate the precense of crc and actual crc to lsb
+    message->message_crc = ((uint16_t)crc_flag << 8) | crc;
+}
+
+bool rf_verify_crc8(RF_Message* message)
+{
+     // Extract the CRC flag (MSB) and actual CRC (LSB)
+     uint8_t crc_flag = (message->message_crc >> 8) & 0xFF;
+     uint8_t stored_crc = message->message_crc & 0xFF;
+ 
+     // If CRC flag is not set, CRC is not present
+     if (crc_flag != 1) {
+         return true;
+     }
+ 
+     uint8_t computed_crc = rf_crc8(&message->message, 8, 0);
+ 
+     return (computed_crc == stored_crc);
+}
 /*
 // Example usage
 int main() {
